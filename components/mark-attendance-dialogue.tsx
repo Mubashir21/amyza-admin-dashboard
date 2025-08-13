@@ -4,6 +4,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useState } from "react";
+import { supabase } from "@/lib/supabase/client";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -21,6 +24,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import {
   Select,
@@ -45,7 +49,7 @@ const formSchema = z.object({
   student_id: z.string().min(1, { message: "Please select a student." }),
   batch_id: z.string().min(1, { message: "Please select a batch." }),
   date: z.date({ message: "Please select a date." }),
-  status: z.enum(["present", "absent"], {
+  status: z.enum(["present", "absent", "late"], {
     message: "Please select attendance status.",
   }),
   notes: z.string().optional(),
@@ -63,18 +67,21 @@ interface MarkAttendanceDialogProps {
   }>;
   batches?: Array<{
     id: string;
-    name?: string;
     batch_code: string;
   }>;
+  onAttendanceMarked?: () => void;
 }
 
 export function MarkAttendanceDialog({
   students = [],
   batches = [],
+  onAttendanceMarked,
 }: MarkAttendanceDialogProps) {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const router = useRouter();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -121,24 +128,39 @@ export function MarkAttendanceDialog({
 
       console.log("Marking attendance:", attendanceData);
 
-      // Here you'll add your Supabase insert logic
-      // const { data, error } = await supabase
-      //   .from('attendance')
-      //   .insert([attendanceData]);
+      // Insert attendance record into Supabase
+      const { data, error: insertError } = await supabase
+        .from("attendance")
+        .insert([attendanceData])
+        .select();
 
-      // if (error) throw error;
+      if (insertError) {
+        throw new Error(insertError.message);
+      }
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      console.log("Attendance marked successfully:", data);
 
       // Reset form and close dialog on success
-      form.reset();
+      form.reset({
+        student_id: "",
+        batch_id: "",
+        date: new Date(),
+        status: undefined,
+        notes: "",
+      });
       setOpen(false);
 
-      // You might want to refresh the attendance list here
-      // or use a callback prop to notify parent component
+      router.refresh();
+
+      // Notify parent component to refresh data
+      onAttendanceMarked?.();
+
+      // Show success toast
+      toast.success("Attendance marked successfully!");
     } catch (err: any) {
+      console.error("Error marking attendance:", err);
       setError(err.message || "An error occurred while marking attendance");
+      toast.error(err.message || "Failed to mark attendance");
     } finally {
       setIsLoading(false);
     }
@@ -195,7 +217,7 @@ export function MarkAttendanceDialog({
                       // Reset student selection when batch changes
                       form.setValue("student_id", "");
                     }}
-                    defaultValue={field.value}
+                    value={field.value}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -206,7 +228,6 @@ export function MarkAttendanceDialog({
                       {batches.map((batch) => (
                         <SelectItem key={batch.id} value={batch.id}>
                           {batch.batch_code}
-                          {batch.name ? ` - ${batch.name}` : ""}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -224,7 +245,7 @@ export function MarkAttendanceDialog({
                   <FormLabel>Student *</FormLabel>
                   <Select
                     onValueChange={field.onChange}
-                    defaultValue={field.value}
+                    value={field.value}
                     disabled={!selectedBatchId}
                   >
                     <FormControl>
@@ -307,6 +328,9 @@ export function MarkAttendanceDialog({
                       Tuesday, and Thursday.
                     </p>
                   )}
+                  <FormDescription>
+                    Classes are held on Sunday, Tuesday, and Thursday only
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -318,10 +342,7 @@ export function MarkAttendanceDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Status *</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select status" />

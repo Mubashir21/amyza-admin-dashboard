@@ -29,8 +29,6 @@ export default async function StudentsPage({ searchParams }: PageProps) {
     getAllBatches(),
   ]);
 
-  console.log("students", students);
-
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -69,7 +67,11 @@ export default async function StudentsPage({ searchParams }: PageProps) {
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {students.map((student) => (
-              <StudentCard key={student.id} student={student} />
+              <StudentCard
+                key={student.id}
+                student={student}
+                batches={batches}
+              />
             ))}
           </div>
         )}

@@ -130,19 +130,26 @@ export async function uploadProfilePicture(
 // Delete profile picture from Supabase Storage
 export async function deleteProfilePicture(pictureUrl: string): Promise<void> {
   try {
-    // Extract file path from URL
-    const url = new URL(pictureUrl);
-    const pathParts = url.pathname.split("/");
-    const fileName = pathParts[pathParts.length - 1];
+    const fileName = pictureUrl.split("/").pop();
 
-    const { error } = await supabase.storage
+    if (!fileName) {
+      throw new Error("Could not extract filename from URL");
+    }
+
+    console.log("Extracted filename:", fileName);
+
+    const { data, error } = await supabase.storage
       .from("student-profile")
       .remove([fileName]);
 
+    console.log("Delete response:", { data, error });
+
     if (error) {
-      console.error("Error deleting profile picture:", error);
+      console.error("Storage delete error:", error);
       throw new Error(`Failed to delete profile picture: ${error.message}`);
     }
+
+    console.log("Successfully deleted from storage:", fileName);
   } catch (error) {
     console.error("Error in deleteProfilePicture:", error);
     throw error;
@@ -395,6 +402,131 @@ export async function getStudentsWithMetrics(filters?: {
     }));
   } catch (error) {
     console.error("Failed to fetch students with metrics:", error);
+    throw error;
+  }
+}
+
+// Delete student and cleanup profile picture
+export async function deleteStudent(studentId: string): Promise<void> {
+  try {
+    // First, get the student data to find profile picture
+    const { data: student, error: fetchError } = await supabase
+      .from("students")
+      .select("profile_picture")
+      .eq("id", studentId)
+      .single();
+
+    if (fetchError && fetchError.code !== "PGRST116") {
+      throw new Error(`Failed to fetch student: ${fetchError.message}`);
+    }
+
+    // Delete the student from database
+    const { error: deleteError } = await supabase
+      .from("students")
+      .delete()
+      .eq("id", studentId);
+
+    if (deleteError) {
+      throw new Error(`Failed to delete student: ${deleteError.message}`);
+    }
+
+    // Delete profile picture if it exists
+    if (student?.profile_picture) {
+      try {
+        await deleteProfilePicture(student.profile_picture);
+      } catch (cleanupError) {
+        console.warn("Failed to delete profile picture:", cleanupError);
+        // Don't throw error here - student is already deleted
+      }
+    }
+
+    console.log("Student deleted successfully");
+  } catch (error) {
+    console.error("Error deleting student:", error);
+    throw error;
+  }
+}
+
+export interface UpdateStudentData {
+  first_name?: string;
+  last_name?: string;
+  email?: string | null;
+  phone?: string | null;
+  gender?: string;
+  batch_id?: string;
+  is_active?: boolean;
+  updated_at?: string;
+}
+
+// Update student information
+export async function updateStudent(
+  studentId: string,
+  updateData: UpdateStudentData
+): Promise<Student> {
+  try {
+    // Update the student record
+    const { data: updatedStudent, error } = await supabase
+      .from("students")
+      .update(updateData)
+      .eq("id", studentId)
+      .select(
+        `
+        *,
+        batch:batches(id, batch_code, current_module)
+      `
+      )
+      .single();
+
+    if (error) {
+      console.error("Error updating student:", error);
+      throw new Error(`Failed to update student: ${error.message}`);
+    }
+
+    return updatedStudent;
+  } catch (error) {
+    console.error("Error in updateStudent:", error);
+    throw error;
+  }
+}
+
+export async function removeStudentProfilePicture(
+  studentId: string
+): Promise<void> {
+  try {
+    // Get current student data
+    const { data: student, error: fetchError } = await supabase
+      .from("students")
+      .select("profile_picture")
+      .eq("id", studentId)
+      .single();
+
+    if (fetchError) {
+      throw new Error(`Failed to fetch student: ${fetchError.message}`);
+    }
+
+    // Delete the profile picture from storage if it exists (using your existing function)
+    if (student.profile_picture) {
+      try {
+        await deleteProfilePicture(student.profile_picture); // Your existing function
+      } catch (deleteError) {
+        console.warn(
+          "Failed to delete profile picture from storage:",
+          deleteError
+        );
+      }
+    }
+
+    // Update the student record to remove profile picture
+    const { error: updateError } = await supabase
+      .from("students")
+      .update({ profile_picture: null })
+      .eq("id", studentId);
+
+    if (updateError) {
+      throw new Error(`Failed to update student: ${updateError.message}`);
+    }
+  } catch (error) {
+    console.error("Error removing student profile picture:", error);
     throw error;
   }
 }

@@ -415,7 +415,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
 
                   <FormField
                     control={form.control}
-                    name={`module_${moduleNum}_name` as any}
+                    name={`module_${moduleNum}` as any}
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Module Name *</FormLabel>

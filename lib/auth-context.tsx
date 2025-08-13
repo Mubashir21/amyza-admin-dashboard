@@ -38,12 +38,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user ?? null);
       setLoading(false);
 
-      // Auto-redirect on login/logout
-      if (event === "SIGNED_IN") {
-        router.push("/dashboard");
-      } else if (event === "SIGNED_OUT") {
+      // Only redirect on sign out, not sign in
+      if (event === "SIGNED_OUT") {
         router.push("/login");
       }
+      // Remove the SIGNED_IN redirect
     });
 
     return () => subscription.unsubscribe();

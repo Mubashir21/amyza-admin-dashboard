@@ -402,14 +402,14 @@ export function AddStudentDialog({ batches = [] }: AddStudentDialogProps) {
             />
 
             <div className="flex justify-end space-x-2 pt-4">
-              {/* <Button
+              <Button
                 type="button"
                 variant="outline"
                 onClick={() => setOpen(false)}
                 disabled={isLoading}
               >
                 Cancel
-              </Button> */}
+              </Button>
               <Button
                 type="submit"
                 disabled={isLoading || isGeneratingId || !generatedStudentId}
