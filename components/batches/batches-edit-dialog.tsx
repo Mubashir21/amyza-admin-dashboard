@@ -37,7 +37,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CalendarIcon, BookOpen } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { CalendarIcon, BookOpen, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { updateBatch } from "@/lib/batches-services";
@@ -95,6 +96,7 @@ export function EditBatchDialog({
 }: EditBatchDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showReactivationWarning, setShowReactivationWarning] = useState(false);
   const router = useRouter();
 
   console.log("EditBatchDialog batch:", batch);
@@ -103,6 +105,17 @@ export function EditBatchDialog({
     resolver: zodResolver(formSchema),
     mode: "onTouched",
   });
+
+  const watchedStatus = form.watch("status");
+  const watchedCurrentModule = form.watch("current_module");
+
+  // Check if we're reactivating a completed batch
+  useEffect(() => {
+    const isReactivating =
+      batch?.status === "completed" &&
+      (watchedStatus === "active" || watchedStatus === "upcoming");
+    setShowReactivationWarning(isReactivating);
+  }, [batch?.status, watchedStatus]);
 
   // Populate form when batch data changes
   useEffect(() => {
@@ -147,8 +160,13 @@ export function EditBatchDialog({
       };
 
       console.log("Updating batch:", updateData);
+      console.log(
+        "Original status:",
+        batch.status,
+        "New status:",
+        values.status
+      );
 
-      // Here you'll add your update function
       await updateBatch(batch.id, updateData);
 
       onOpenChange(false);
@@ -178,6 +196,24 @@ export function EditBatchDialog({
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
             <p className="text-sm">{error}</p>
           </div>
+        )}
+
+        {showReactivationWarning && (
+          <Alert>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Reactivating Completed Batch</AlertTitle>
+            <AlertDescription>
+              Changing this batch from "completed" to "active" or "upcoming"
+              will:
+              <ul className="list-disc list-inside mt-2 space-y-1">
+                <li>
+                  Reactivate all students in this batch (set is_active = true)
+                </li>
+                <li>Allow the batch to progress through modules again</li>
+                <li>Reset attendance tracking and performance evaluations</li>
+              </ul>
+            </AlertDescription>
+          </Alert>
         )}
 
         <Form {...form}>
@@ -358,6 +394,12 @@ export function EditBatchDialog({
                         </SelectContent>
                       </Select>
                       <FormMessage />
+                      {watchedStatus === "completed" && (
+                        <FormDescription>
+                          For completed batches, this represents the final
+                          module reached.
+                        </FormDescription>
+                      )}
                     </FormItem>
                   )}
                 />
@@ -409,17 +451,28 @@ export function EditBatchDialog({
                     {format(form.watch("end_date"), "PP")}
                   </div>
                   <div>
+                    <span className="font-medium">Status:</span>{" "}
+                    {watchedStatus?.charAt(0).toUpperCase() +
+                      watchedStatus?.slice(1)}
+                  </div>
+                  <div>
                     <span className="font-medium">Current Module:</span>{" "}
-                    {form.watch("module_1_name") &&
-                    form.watch("current_module") === 1
+                    {watchedStatus === "completed"
+                      ? "All modules completed"
+                      : form.watch("module_1_name") &&
+                        watchedCurrentModule === 1
                       ? form.watch("module_1_name")
                       : form.watch("module_2_name") &&
-                        form.watch("current_module") === 2
+                        watchedCurrentModule === 2
                       ? form.watch("module_2_name")
                       : form.watch("module_3_name") &&
-                        form.watch("current_module") === 3
+                        watchedCurrentModule === 3
                       ? form.watch("module_3_name")
                       : ""}
+                  </div>
+                  <div>
+                    <span className="font-medium">Max Students:</span>{" "}
+                    {form.watch("max_students")}
                   </div>
                   <div className="col-span-2">
                     <span className="font-medium">Module Progression:</span>{" "}

@@ -52,11 +52,11 @@ export default async function DashboardPage() {
         {/* Main Content Tabs */}
         <ResponsiveContainer>
           <Tabs defaultValue="overview" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="performance">Performance</TabsTrigger>
               <TabsTrigger value="attendance">Attendance</TabsTrigger>
-              <TabsTrigger value="alerts">Alerts</TabsTrigger>
+              {/* <TabsTrigger value="alerts">Alerts</TabsTrigger> */}
             </TabsList>
 
             <TabsContent value="overview" className="space-y-4">

@@ -1,16 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import {
-  deleteBatch,
-  updateBatchModule,
-  updateBatchStatus,
-} from "@/lib/batches-services";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -25,22 +22,27 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  SkipForward,
   MoreHorizontal,
-  Eye,
   Edit,
-  Trash2,
+  SkipForward,
   CheckCircle,
+  Trash2,
+  Users,
+  Play,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { BatchDetailsDialog } from "@/components/batches/batches-details-dialog";
-import { EditBatchDialog } from "@/components/batches/batches-edit-dialog";
+import {
+  updateBatchModule,
+  updateBatchStatus,
+  deleteBatch,
+  completeBatch,
+} from "@/lib/batches-services";
+import { EditBatchDialog } from "./batches-edit-dialog";
 
 interface BatchActionsProps {
   batchId: string;
   currentModule: number;
-  status: string;
-  batch: any; // Full batch data for details dialog
+  status: "active" | "upcoming" | "completed";
+  batch: any; // The full batch object for editing
 }
 
 export function BatchActions({
@@ -49,57 +51,61 @@ export function BatchActions({
   status,
   batch,
 }: BatchActionsProps) {
-  const [isLoading, setIsLoading] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [showCompleteDialog, setShowCompleteDialog] = useState(false);
-  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
-  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  const handleModuleAdvance = async () => {
+  const handleAdvanceModule = async () => {
     if (currentModule >= 3) return;
 
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-      const newModule = currentModule + 1;
-      await updateBatchModule(batchId, newModule);
-
-      // Refresh the page to show updated data
+      await updateBatchModule(batchId, currentModule + 1);
       router.refresh();
-    } catch (error: any) {
+    } catch (error) {
       console.error("Failed to advance module:", error);
-      // You could show a toast error message here
+      // You can add toast notification here
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleCompleteBatch = async () => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-      await updateBatchStatus(batchId, "completed");
-
-      router.refresh();
+      await completeBatch(batchId);
       setShowCompleteDialog(false);
-    } catch (error: any) {
+      router.refresh();
+      // You can add success toast here
+    } catch (error) {
       console.error("Failed to complete batch:", error);
-      // You could show a toast error message here
+      // You can add error toast here
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleDelete = async () => {
+  const handleActivateBatch = async () => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-
-      // Call your delete function here
-      await deleteBatch(batchId);
-      console.log("Deleting batch:", batchId);
-
+      await updateBatchStatus(batchId, "active");
       router.refresh();
+    } catch (error) {
+      console.error("Failed to activate batch:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteBatch = async () => {
+    setIsLoading(true);
+    try {
+      await deleteBatch(batchId);
       setShowDeleteDialog(false);
-    } catch (error: any) {
+      router.refresh();
+    } catch (error) {
       console.error("Failed to delete batch:", error);
     } finally {
       setIsLoading(false);
@@ -109,66 +115,93 @@ export function BatchActions({
   return (
     <>
       <div className="flex gap-2 w-full">
-        <Button
-          variant="outline"
-          size="sm"
-          className="flex-1"
-          onClick={() => setShowDetailsDialog(true)}
-        >
-          <Eye className="h-3 w-3 mr-1" />
-          View Details
-        </Button>
+        {/* Quick Action Buttons */}
+        {status === "upcoming" && (
+          <Button
+            onClick={handleActivateBatch}
+            disabled={isLoading}
+            size="sm"
+            className="flex-1"
+          >
+            <Play className="w-4 h-4 mr-2" />
+            Start Batch
+          </Button>
+        )}
 
         {status === "active" && currentModule < 3 && (
           <Button
-            variant="outline"
-            size="sm"
-            onClick={handleModuleAdvance}
+            onClick={handleAdvanceModule}
             disabled={isLoading}
-            className="flex items-center gap-1"
+            size="sm"
+            variant="outline"
+            className="flex-1"
           >
-            <SkipForward className="h-3 w-3" />
-            {isLoading ? "Updating..." : "Next Module"}
+            <SkipForward className="w-4 h-4 mr-2" />
+            Next Module
           </Button>
         )}
 
-        {status === "active" && currentModule === 3 && (
+        {status === "active" && (
           <Button
-            variant="default"
-            size="sm"
             onClick={() => setShowCompleteDialog(true)}
             disabled={isLoading}
-            className="flex items-center gap-1"
+            size="sm"
+            variant="default"
+            className="flex-1"
           >
-            <CheckCircle className="h-3 w-3" />
-            {isLoading ? "Completing..." : "Complete Batch"}
+            <CheckCircle className="w-4 h-4 mr-2" />
+            Complete
           </Button>
         )}
 
+        {/* More Actions Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" className="h-9 w-9 p-0">
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => setShowEditDialog(true)}>
-              <Edit className="h-4 w-4 mr-2" />
+            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+
+            <DropdownMenuItem onClick={() => setIsEditDialogOpen(true)}>
+              <Edit className="mr-2 h-4 w-4" />
               Edit Batch
             </DropdownMenuItem>
+
+            <DropdownMenuItem>
+              <Users className="mr-2 h-4 w-4" />
+              View Students
+            </DropdownMenuItem>
+
             <DropdownMenuSeparator />
+
+            {status === "completed" && (
+              <DropdownMenuItem onClick={handleActivateBatch}>
+                <Play className="mr-2 h-4 w-4" />
+                Reactivate Batch
+              </DropdownMenuItem>
+            )}
+
             <DropdownMenuItem
               onClick={() => setShowDeleteDialog(true)}
-              className="text-red-600 focus:text-red-600"
+              className="text-red-600"
             >
-              <Trash2 className="h-4 w-4 mr-2" />
+              <Trash2 className="mr-2 h-4 w-4" />
               Delete Batch
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
 
-      {/* Complete Batch Confirmation Dialog */}
+      {/* Edit Dialog */}
+      <EditBatchDialog
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        batch={batch}
+      />
+
+      {/* Complete Batch Confirmation */}
       <AlertDialog
         open={showCompleteDialog}
         onOpenChange={setShowCompleteDialog}
@@ -177,17 +210,22 @@ export function BatchActions({
           <AlertDialogHeader>
             <AlertDialogTitle>Complete Batch</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to complete batch "{batch.batch_code}"? This
-              will mark the batch as finished and move it to completed status.
-              You can still view the batch data but won't be able to make
-              further changes.
+              This will mark the batch as completed and deactivate all students
+              in this batch. Students will no longer appear in active lists and
+              their attendance tracking will stop.
+              <br />
+              <br />
+              <strong>
+                This action can be reversed by editing the batch status.
+              </strong>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleCompleteBatch}
               disabled={isLoading}
+              className="bg-green-600 hover:bg-green-700"
             >
               {isLoading ? "Completing..." : "Complete Batch"}
             </AlertDialogAction>
@@ -195,43 +233,36 @@ export function BatchActions({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Delete Batch Confirmation */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Batch</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete batch "{batch.batch_code}"? This
-              action cannot be undone and will also delete all associated
-              students and attendance records.
+              This will permanently delete the batch. All associated data
+              including:
+              <ul className="list-disc list-inside mt-2 space-y-1">
+                <li>Student enrollments</li>
+                <li>Attendance records</li>
+                <li>Performance data</li>
+                <li>Module progress</li>
+              </ul>
+              <br />
+              <strong>This action cannot be undone.</strong>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-red-600 hover:bg-red-700"
+              onClick={handleDeleteBatch}
               disabled={isLoading}
+              className="bg-red-600 hover:bg-red-700"
             >
-              {isLoading ? "Deleting..." : "Delete"}
+              {isLoading ? "Deleting..." : "Delete Batch"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Details Dialog */}
-      <BatchDetailsDialog
-        open={showDetailsDialog}
-        onOpenChange={setShowDetailsDialog}
-        batch={batch}
-      />
-
-      {/* Edit Dialog */}
-      <EditBatchDialog
-        open={showEditDialog}
-        onOpenChange={setShowEditDialog}
-        batch={batch}
-      />
     </>
   );
 }

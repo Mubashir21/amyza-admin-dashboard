@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { BookOpen, ChevronRight, SkipForward } from "lucide-react";
+import { BookOpen, CheckCircle } from "lucide-react";
 import { BatchActions } from "./batches-actions";
 
 interface BatchCardProps {
@@ -44,6 +44,13 @@ export function BatchCard({ batch, onModuleAdvance }: BatchCardProps) {
     }
   };
 
+  const isCompleted = batch.status === "completed";
+  const currentModuleText = isCompleted
+    ? "All modules completed"
+    : `Module ${batch.current_module}: ${
+        batch[`module_${batch.current_module}` as keyof typeof batch]
+      }`;
+
   return (
     <Card className="hover:shadow-md transition-shadow">
       <CardHeader>
@@ -72,7 +79,9 @@ export function BatchCard({ batch, onModuleAdvance }: BatchCardProps) {
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span>Progress</span>
-                <span className="font-medium">{batch.progress}%</span>
+                <span className="font-medium">
+                  {isCompleted ? "100%" : `${batch.progress}%`}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span>Attendance</span>
@@ -81,32 +90,40 @@ export function BatchCard({ batch, onModuleAdvance }: BatchCardProps) {
             </div>
           </div>
 
-          <Progress value={batch.progress} className="h-2" />
+          <Progress
+            value={isCompleted ? 100 : batch.progress}
+            className="h-2"
+          />
 
           {/* Current Module Display */}
           <div className="bg-muted/50 p-3 rounded-lg">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <BookOpen className="h-4 w-4" />
-                <span className="text-sm font-medium">Current Module</span>
+                {isCompleted ? (
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                ) : (
+                  <BookOpen className="h-4 w-4" />
+                )}
+                <span className="text-sm font-medium">
+                  {isCompleted ? "Status" : "Current Module"}
+                </span>
               </div>
               <span className="text-xs text-muted-foreground">
-                {batch.current_module} of 3
+                {isCompleted ? "Completed" : `${batch.current_module} of 3`}
               </span>
             </div>
 
             <div className="space-y-1">
-              <div className="font-medium">
-                Module {batch.current_module}:{" "}
-                {batch[`module_${batch.current_module}` as keyof typeof batch]}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {
-                  batch[
-                    `module_${batch.current_module}_desc` as keyof typeof batch
-                  ]
-                }
-              </div>
+              <div className="font-medium">{currentModuleText}</div>
+              {!isCompleted && (
+                <div className="text-xs text-muted-foreground">
+                  {
+                    batch[
+                      `module_${batch.current_module}_desc` as keyof typeof batch
+                    ]
+                  }
+                </div>
+              )}
             </div>
           </div>
 
@@ -114,31 +131,39 @@ export function BatchCard({ batch, onModuleAdvance }: BatchCardProps) {
           <div className="space-y-2">
             <span className="text-sm font-medium">Module Progression</span>
             <div className="space-y-1">
-              {[1, 2, 3].map((moduleNum) => (
-                <div key={moduleNum} className="flex items-center gap-3">
-                  <div
-                    className={`w-3 h-3 rounded-full ${
-                      moduleNum < batch.current_module
-                        ? "bg-green-500"
-                        : moduleNum === batch.current_module
-                        ? "bg-blue-500"
-                        : "bg-gray-300"
-                    }`}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium truncate">
-                      {batch[`module_${moduleNum}` as keyof typeof batch]}
+              {[1, 2, 3].map((moduleNum) => {
+                let moduleStatus = "";
+                let moduleColor = "";
+
+                if (isCompleted) {
+                  // All modules are completed when batch is completed
+                  moduleStatus = "Completed";
+                  moduleColor = "bg-green-500";
+                } else if (moduleNum < batch.current_module) {
+                  moduleStatus = "Completed";
+                  moduleColor = "bg-green-500";
+                } else if (moduleNum === batch.current_module) {
+                  moduleStatus = "Current";
+                  moduleColor = "bg-blue-500";
+                } else {
+                  moduleStatus = "Upcoming";
+                  moduleColor = "bg-gray-300";
+                }
+
+                return (
+                  <div key={moduleNum} className="flex items-center gap-3">
+                    <div className={`w-3 h-3 rounded-full ${moduleColor}`} />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium truncate">
+                        {batch[`module_${moduleNum}` as keyof typeof batch]}
+                      </div>
                     </div>
+                    <span className="text-xs text-muted-foreground">
+                      {moduleStatus}
+                    </span>
                   </div>
-                  <span className="text-xs text-muted-foreground">
-                    {moduleNum < batch.current_module
-                      ? "Completed"
-                      : moduleNum === batch.current_module
-                      ? "Current"
-                      : "Upcoming"}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 

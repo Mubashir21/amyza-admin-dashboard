@@ -1,7 +1,5 @@
 import { supabase } from "@/lib/supabase/client";
 
-// Remove the server import since we're using this from client components
-
 // Types for better TypeScript support
 export interface Batch {
   id: string;
@@ -60,13 +58,13 @@ export async function getBatchesFiltered(filters?: {
 
     // Apply status filter
     if (filters?.status && filters.status !== "all") {
-      console.log("Applying status filter:", filters.status); // Debug log
+      console.log("Applying status filter:", filters.status);
       query = query.eq("status", filters.status);
     }
 
     // Apply search filter
     if (filters?.search) {
-      console.log("Applying search filter:", filters.search); // Debug log
+      console.log("Applying search filter:", filters.search);
       query = query.or(
         `batch_code.ilike.%${filters.search}%,module_1.ilike.%${filters.search}%,module_2.ilike.%${filters.search}%,module_3.ilike.%${filters.search}%`
       );
@@ -99,7 +97,7 @@ export async function getBatchById(id: string): Promise<Batch | null> {
 
     if (error) {
       if (error.code === "PGRST116") {
-        return null; // No batch found
+        return null;
       }
       console.error("Error fetching batch:", error);
       throw new Error(error.message);
@@ -166,6 +164,13 @@ export async function updateBatch(
   }>
 ): Promise<Batch> {
   try {
+    // Get current batch data to compare status changes
+    const { data: currentBatch } = await supabase
+      .from("batches")
+      .select("status, current_module")
+      .eq("id", batchId)
+      .single();
+
     const { data, error } = await supabase
       .from("batches")
       .update({
@@ -181,9 +186,118 @@ export async function updateBatch(
       throw new Error(error.message);
     }
 
+    // Handle status change implications
+    if (currentBatch && updateData.status !== currentBatch.status) {
+      await handleBatchStatusChange(
+        batchId,
+        updateData.status!,
+        currentBatch.status
+      );
+    }
+
     return data;
   } catch (error) {
     console.error("Failed to update batch:", error);
+    throw error;
+  }
+}
+
+// Handle batch status changes and their implications
+async function handleBatchStatusChange(
+  batchId: string,
+  newStatus: "upcoming" | "active" | "completed",
+  oldStatus: "upcoming" | "active" | "completed"
+): Promise<void> {
+  try {
+    console.log(
+      `Handling status change from ${oldStatus} to ${newStatus} for batch ${batchId}`
+    );
+
+    if (newStatus === "completed" && oldStatus !== "completed") {
+      // When marking as completed: deactivate all students
+      await deactivateStudentsInBatch(batchId);
+    } else if (newStatus === "active" && oldStatus === "completed") {
+      // When reactivating from completed: reactivate all students
+      await reactivateStudentsInBatch(batchId);
+    }
+  } catch (error) {
+    console.error("Failed to handle batch status change:", error);
+    throw error;
+  }
+}
+
+// Complete a batch (set status to completed and deactivate students)
+export async function completeBatch(batchId: string): Promise<void> {
+  try {
+    console.log(`Completing batch ${batchId}`);
+
+    // Update batch status to completed
+    const { error: batchError } = await supabase
+      .from("batches")
+      .update({
+        status: "completed",
+        current_module: 3, // Set to final module
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", batchId);
+
+    if (batchError) {
+      console.error("Error updating batch status:", batchError);
+      throw new Error(batchError.message);
+    }
+
+    // Deactivate all students in this batch
+    await deactivateStudentsInBatch(batchId);
+
+    console.log(`Batch ${batchId} completed successfully`);
+  } catch (error) {
+    console.error("Failed to complete batch:", error);
+    throw error;
+  }
+}
+
+// Deactivate all students in a batch
+async function deactivateStudentsInBatch(batchId: string): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from("students")
+      .update({
+        is_active: false,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("batch_id", batchId);
+
+    if (error) {
+      console.error("Error deactivating students:", error);
+      throw new Error(error.message);
+    }
+
+    console.log(`Deactivated all students in batch ${batchId}`);
+  } catch (error) {
+    console.error("Failed to deactivate students:", error);
+    throw error;
+  }
+}
+
+// Reactivate all students in a batch
+async function reactivateStudentsInBatch(batchId: string): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from("students")
+      .update({
+        is_active: true,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("batch_id", batchId);
+
+    if (error) {
+      console.error("Error reactivating students:", error);
+      throw new Error(error.message);
+    }
+
+    console.log(`Reactivated all students in batch ${batchId}`);
+  } catch (error) {
+    console.error("Failed to reactivate students:", error);
     throw error;
   }
 }
@@ -222,6 +336,13 @@ export async function updateBatchStatus(
   status: "upcoming" | "active" | "completed"
 ): Promise<void> {
   try {
+    // Get current status to handle implications
+    const { data: currentBatch } = await supabase
+      .from("batches")
+      .select("status")
+      .eq("id", batchId)
+      .single();
+
     const { error } = await supabase
       .from("batches")
       .update({
@@ -233,6 +354,11 @@ export async function updateBatchStatus(
     if (error) {
       console.error("Error updating batch status:", error);
       throw new Error(error.message);
+    }
+
+    // Handle status change implications
+    if (currentBatch) {
+      await handleBatchStatusChange(batchId, status, currentBatch.status);
     }
   } catch (error) {
     console.error("Failed to update batch status:", error);
@@ -274,7 +400,7 @@ export async function getBatchStats() {
       completedBatches:
         batches?.filter((b) => b.status === "completed").length || 0,
       totalBatches: batches?.length || 0,
-      activeModules: batches?.filter((b) => b.status === "active").length || 0, // Count of active batches = active modules
+      activeModules: batches?.filter((b) => b.status === "active").length || 0,
     };
 
     return stats;
@@ -319,7 +445,6 @@ export async function getBatchAttendanceRates(): Promise<{
   [batchId: string]: number;
 }> {
   try {
-    // Get all attendance records with student batch info
     const { data, error } = await supabase.from("attendance").select(`
         id,
         student_id,
@@ -332,13 +457,11 @@ export async function getBatchAttendanceRates(): Promise<{
       return {};
     }
 
-    // Calculate attendance rate per batch
     const batchStats: {
       [batchId: string]: { total: number; present: number };
     } = {};
 
     data?.forEach((record: any) => {
-      // students is an object, not an array when using !inner
       const batchId = record.students?.batch_id;
       if (batchId) {
         if (!batchStats[batchId]) {
@@ -351,7 +474,6 @@ export async function getBatchAttendanceRates(): Promise<{
       }
     });
 
-    // Convert to percentages
     const attendanceRates: { [batchId: string]: number } = {};
     Object.entries(batchStats).forEach(([batchId, stats]) => {
       attendanceRates[batchId] =

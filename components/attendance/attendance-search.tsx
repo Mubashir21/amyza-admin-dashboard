@@ -129,7 +129,7 @@ export function AttendanceSearchClient({
                 <SelectItem value="present">Present</SelectItem>
                 <SelectItem value="absent">Absent</SelectItem>
                 <SelectItem value="late">Late</SelectItem>
-                <SelectItem value="excused">Excused</SelectItem>
+                {/* <SelectItem value="excused">Excused</SelectItem> */}
               </SelectContent>
             </Select>
 
