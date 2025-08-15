@@ -5,8 +5,7 @@ export const AUTH_CONFIG = {
   // Authorized emails for the student portfolio system
   AUTHORIZED_EMAILS: [
     "mubashirshoukat@gmail.com",
-    "teacher@school.com",
-    "principal@school.com",
+    "muzaffarrocks06@gmail.com",
     // Add your actual email addresses here
   ],
 
