@@ -18,7 +18,7 @@ interface ConfirmEmailClientProps {
   type?: string;
 }
 
-export function ConfirmEmailClient({ token, type }: ConfirmEmailClientProps) {
+export function ConfirmEmailClient({ token }: ConfirmEmailClientProps) {
   const [status, setStatus] = useState<"confirming" | "success" | "error">(
     "confirming"
   );

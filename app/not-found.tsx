@@ -31,7 +31,7 @@ export default function NotFound() {
         </div>
         <h1 className="text-3xl font-bold tracking-tight">Page Not Found</h1>
         <p className="text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
+          The page you&apos;re looking for doesn&apos;t exist or has been moved.
         </p>
       </ResponsiveContainer>
 
@@ -59,7 +59,9 @@ export default function NotFound() {
                 <div className="bg-muted/50 p-4 rounded-lg">
                   <h3 className="font-medium mb-2">What happened?</h3>
                   <ul className="text-sm text-muted-foreground space-y-1">
-                    <li>• The page you're looking for doesn't exist</li>
+                    <li>
+                      • The page you&apos;re looking for doesn&apos;t exist
+                    </li>
                     <li>• The URL might have been typed incorrectly</li>
                     <li>• The page may have been moved or deleted</li>
                     <li>• You might not have permission to access this page</li>
