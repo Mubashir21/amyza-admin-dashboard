@@ -184,9 +184,14 @@ export function AddStudentDialog({ batches = [] }: AddStudentDialogProps) {
 
       // Refresh the page to show the new student
       router.refresh();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error creating student:", err);
-      setError(err.message || "An error occurred while adding the student");
+
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("An error occurred while adding the student");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -205,8 +210,8 @@ export function AddStudentDialog({ batches = [] }: AddStudentDialogProps) {
         <DialogHeader>
           <DialogTitle>Add New Student</DialogTitle>
           <DialogDescription>
-            Enter the student's information below. Student ID will be generated
-            automatically.
+            Enter the student&apos;s information below. Student ID will be
+            generated automatically.
           </DialogDescription>
         </DialogHeader>
 

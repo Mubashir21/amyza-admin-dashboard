@@ -33,7 +33,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -157,10 +156,16 @@ export function MarkAttendanceDialog({
 
       // Show success toast
       toast.success("Attendance marked successfully!");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error marking attendance:", err);
-      setError(err.message || "An error occurred while marking attendance");
-      toast.error(err.message || "Failed to mark attendance");
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : "An error occurred while marking attendance";
+      setError(errorMessage);
+      toast.error(
+        err instanceof Error ? err.message : "Failed to mark attendance"
+      );
     } finally {
       setIsLoading(false);
     }

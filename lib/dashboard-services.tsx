@@ -242,7 +242,7 @@ export async function getBatchOverview(): Promise<BatchInfo[]> {
         }
 
         // Get attendance percentage for this batch
-        const { data: attendanceData, error: attendanceError } = await supabase
+        const { data: attendanceData } = await supabase
           .from("attendance")
           .select("status")
           .eq("batch_id", batch.id);
@@ -258,7 +258,7 @@ export async function getBatchOverview(): Promise<BatchInfo[]> {
         }
 
         // Get average score for this batch
-        const { data: studentsData, error: studentsError } = await supabase
+        const { data: studentsData } = await supabase
           .from("students")
           .select(
             "creativity, leadership, behavior, presentation, communication, technical_skills, general_performance"

@@ -21,7 +21,6 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-  FormDescription,
 } from "@/components/ui/form";
 import {
   Select,
@@ -37,6 +36,7 @@ import {
   removeStudentProfilePicture,
   updateStudent,
   updateStudentProfilePicture,
+  Student,
 } from "@/lib/students-services";
 
 const formSchema = z.object({
@@ -67,7 +67,7 @@ type FormValues = z.infer<typeof formSchema>;
 interface EditStudentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  student: any;
+  student: Student;
   batches?: Array<{ id: string; batch_code: string }>;
 }
 
@@ -100,7 +100,7 @@ export function EditStudentDialog({
         last_name: student.last_name || "",
         email: student.email || "",
         phone: student.phone || "",
-        gender: student.gender || undefined,
+        gender: student.gender as "male" | "female",
         batch_id: student.batch_id || "",
         is_active: student.is_active ?? true,
       });
@@ -196,51 +196,17 @@ export function EditStudentDialog({
 
       onOpenChange(false);
       router.refresh();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error updating student:", err);
-      setError(err.message || "An error occurred while updating the student");
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : "An error occurred while updating the student";
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
   }
-
-  const performanceMetrics = [
-    {
-      name: "creativity",
-      label: "Creativity",
-      description: "Creative thinking and innovation",
-    },
-    {
-      name: "leadership",
-      label: "Leadership",
-      description: "Leadership and teamwork skills",
-    },
-    {
-      name: "behavior",
-      label: "Behavior",
-      description: "Professional behavior and attitude",
-    },
-    {
-      name: "presentation",
-      label: "Presentation",
-      description: "Presentation and communication skills",
-    },
-    {
-      name: "communication",
-      label: "Communication",
-      description: "Written and verbal communication",
-    },
-    {
-      name: "technical_skills",
-      label: "Technical Skills",
-      description: "Technical knowledge and skills",
-    },
-    {
-      name: "general_performance",
-      label: "General Performance",
-      description: "Overall academic performance",
-    },
-  ];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

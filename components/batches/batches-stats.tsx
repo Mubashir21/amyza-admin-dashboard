@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Calendar, GraduationCap, Clock, BookOpen } from "lucide-react";
+import { Users, GraduationCap, Clock, BookOpen } from "lucide-react";
 
 interface BatchesStatsProps {
   stats?: {

@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import {
   getStudentsFiltered,
   getStudentsStats,
-  getStudentsWithMetrics,
-  type Student,
+  // getStudentsWithMetrics,
+  // type Student,
 } from "@/lib/students-services";
 import { getAllBatches } from "@/lib/batches-services";
 

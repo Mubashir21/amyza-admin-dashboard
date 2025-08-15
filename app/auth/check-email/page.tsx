@@ -1,6 +1,3 @@
-"use client";
-
-import { useSearchParams } from "next/navigation";
 import { Mail, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,9 +8,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-export default function CheckEmailPage() {
-  const searchParams = useSearchParams();
-  const email = searchParams.get("email");
+interface PageProps {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}
+
+export default async function CheckEmailPage({ searchParams }: PageProps) {
+  const params = await searchParams;
+  const email = params.email as string;
 
   return (
     <div className="flex items-center justify-center min-h-screen p-4">
@@ -28,7 +29,7 @@ export default function CheckEmailPage() {
           <CardTitle className="text-2xl">Check Your Email</CardTitle>
 
           <CardDescription className="space-y-2">
-            <span>We've sent a confirmation link to:</span>
+            <span>We&apos;ve sent a confirmation link to:</span>
             <div className="font-semibold text-foreground">{email}</div>
           </CardDescription>
         </CardHeader>
@@ -51,16 +52,14 @@ export default function CheckEmailPage() {
           </Card>
 
           <div className="text-sm text-muted-foreground text-center">
-            <p>Didn't receive the email? Check your spam folder.</p>
+            <p>Didn&apos;t receive the email? Check your spam folder.</p>
           </div>
 
-          <Button
-            variant="outline"
-            onClick={() => (window.location.href = "/login")}
-            className="w-full"
-          >
-            Back to Login
-          </Button>
+          <form action="/login">
+            <Button type="submit" variant="outline" className="w-full">
+              Back to Login
+            </Button>
+          </form>
         </CardContent>
       </Card>
     </div>

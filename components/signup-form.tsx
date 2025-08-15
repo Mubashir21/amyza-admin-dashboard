@@ -20,7 +20,7 @@ import {
   FormDescription,
 } from "@/components/ui/form";
 import { signUp } from "@/lib/auth";
-import { getAuthorizedEmails, isAuthorizedEmail } from "@/lib/config";
+import { getAuthorizedEmails } from "@/lib/config";
 
 // Get authorized emails from central config
 const AUTHORIZED_EMAILS = getAuthorizedEmails();
@@ -61,7 +61,7 @@ export function SignupForm({
 }: React.ComponentProps<"div">) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [success] = useState(false);
   const router = useRouter();
 
   const form = useForm<FormValues>({
@@ -92,8 +92,12 @@ export function SignupForm({
       router.push(
         `/auth/check-email?email=${encodeURIComponent(values.email)}`
       );
-    } catch (err: any) {
-      setError(err.message || "An error occurred during signup");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("An error occurred during signup");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -257,7 +261,7 @@ export function SignupForm({
       </Form>
 
       <div className="text-center text-xs text-muted-foreground">
-        Contact your administrator if you need access but don't have an
+        Contact your administrator if you need access but don&apos;t have an
         authorized email address.
       </div>
     </div>

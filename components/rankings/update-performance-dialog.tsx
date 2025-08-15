@@ -34,7 +34,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Trophy, User, Target } from "lucide-react";
 
@@ -110,74 +109,74 @@ export function UpdatePerformanceDialog({
 
   // Load data when dialog opens if not provided
   useEffect(() => {
-    if (open && (allStudents.length === 0 || allBatches.length === 0)) {
-      loadData();
-    }
-  }, [open]);
+    if (!open || (allStudents.length > 0 && allBatches.length > 0)) return;
+
+    const loadData = async () => {
+      try {
+        if (allStudents.length === 0) {
+          const { data: studentsData, error: studentsError } = await supabase
+            .from("students")
+            .select("id, first_name, last_name, student_id, batch_id")
+            .eq("is_active", true)
+            .order("first_name");
+
+          if (studentsError) throw studentsError;
+          setAllStudents(studentsData || []);
+        }
+
+        if (allBatches.length === 0) {
+          const { data: batchesData, error: batchesError } = await supabase
+            .from("batches")
+            .select("id, batch_code")
+            .eq("status", "active")
+            .order("batch_code");
+
+          if (batchesError) throw batchesError;
+          setAllBatches(batchesData || []);
+        }
+      } catch (error) {
+        console.error("Error loading data:", error);
+        toast.error("Failed to load students and batches");
+      }
+    };
+
+    loadData();
+  }, [open, allStudents.length, allBatches.length]);
 
   // Load current performance when student is selected
   const selectedStudentId = form.watch("student_id");
   useEffect(() => {
-    if (selectedStudentId) {
-      loadCurrentPerformance(selectedStudentId);
-    }
-  }, [selectedStudentId]);
+    if (!selectedStudentId) return;
 
-  const loadData = async () => {
-    try {
-      if (allStudents.length === 0) {
-        const { data: studentsData, error: studentsError } = await supabase
+    const loadCurrentPerformance = async (studentId: string) => {
+      try {
+        const { data, error } = await supabase
           .from("students")
-          .select("id, first_name, last_name, student_id, batch_id")
-          .eq("is_active", true)
-          .order("first_name");
+          .select(
+            "creativity, leadership, behavior, presentation, communication, technical_skills, general_performance"
+          )
+          .eq("id", studentId)
+          .single();
 
-        if (studentsError) throw studentsError;
-        setAllStudents(studentsData || []);
+        if (error) throw error;
+
+        if (data) {
+          // Update form with current values
+          form.setValue("creativity", data.creativity || 8);
+          form.setValue("leadership", data.leadership || 8);
+          form.setValue("behavior", data.behavior || 10);
+          form.setValue("presentation", data.presentation || 8);
+          form.setValue("communication", data.communication || 8);
+          form.setValue("technical_skills", data.technical_skills || 8);
+          form.setValue("general_performance", data.general_performance || 8);
+        }
+      } catch (error) {
+        console.error("Error loading current performance:", error);
       }
+    };
 
-      if (allBatches.length === 0) {
-        const { data: batchesData, error: batchesError } = await supabase
-          .from("batches")
-          .select("id, batch_code")
-          .eq("status", "active")
-          .order("batch_code");
-
-        if (batchesError) throw batchesError;
-        setAllBatches(batchesData || []);
-      }
-    } catch (error) {
-      console.error("Error loading data:", error);
-      toast.error("Failed to load students and batches");
-    }
-  };
-
-  const loadCurrentPerformance = async (studentId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from("students")
-        .select(
-          "creativity, leadership, behavior, presentation, communication, technical_skills, general_performance"
-        )
-        .eq("id", studentId)
-        .single();
-
-      if (error) throw error;
-
-      if (data) {
-        // Update form with current values
-        form.setValue("creativity", data.creativity || 8);
-        form.setValue("leadership", data.leadership || 8);
-        form.setValue("behavior", data.behavior || 10);
-        form.setValue("presentation", data.presentation || 8);
-        form.setValue("communication", data.communication || 8);
-        form.setValue("technical_skills", data.technical_skills || 8);
-        form.setValue("general_performance", data.general_performance || 8);
-      }
-    } catch (error) {
-      console.error("Error loading current performance:", error);
-    }
-  };
+    loadCurrentPerformance(selectedStudentId);
+  }, [selectedStudentId, form]);
 
   async function onSubmit(values: FormValues) {
     setIsLoading(true);
@@ -226,10 +225,12 @@ export function UpdatePerformanceDialog({
       // Reset form and close dialog
       form.reset();
       setOpen(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error updating performance:", err);
-      setError(err.message || "Failed to update performance");
-      toast.error(err.message || "Failed to update performance");
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to update performance";
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }

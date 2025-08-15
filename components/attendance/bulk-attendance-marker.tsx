@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -76,16 +76,7 @@ export function BulkAttendanceMarker({
   const router = useRouter();
 
   // Load students when batch is selected
-  useEffect(() => {
-    if (selectedBatch) {
-      loadStudents();
-    } else {
-      setStudents([]);
-      setAttendance({});
-    }
-  }, [selectedBatch]);
-
-  const loadStudents = async () => {
+  const loadStudents = useCallback(async () => {
     if (!selectedBatch) return;
 
     setIsLoading(true);
@@ -103,7 +94,6 @@ export function BulkAttendanceMarker({
 
       // Initialize attendance state as empty (no default selection)
       const initialAttendance: AttendanceState = {};
-      // Don't pre-select any status - let teachers choose
       setAttendance(initialAttendance);
     } catch (error) {
       console.error("Error loading students:", error);
@@ -111,7 +101,17 @@ export function BulkAttendanceMarker({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [selectedBatch]); // Add selectedBatch as dependency
+
+  // Load students when batch is selected
+  useEffect(() => {
+    if (selectedBatch) {
+      loadStudents();
+    } else {
+      setStudents([]);
+      setAttendance({});
+    }
+  }, [selectedBatch, loadStudents]); // Add loadStudents to dependencies
 
   const updateAttendance = (
     studentId: string,
@@ -199,9 +199,11 @@ export function BulkAttendanceMarker({
       setAttendance({});
       setStudents([]);
       setSelectedBatch("");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error saving attendance:", error);
-      toast.error(error.message || "Failed to save attendance");
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to save attendance";
+      toast.error(errorMessage);
     } finally {
       setIsSaving(false);
     }

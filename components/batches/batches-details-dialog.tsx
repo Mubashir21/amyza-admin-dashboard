@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
 import {
   Table,
   TableBody,
@@ -34,30 +33,16 @@ import {
   GraduationCap,
   Clock,
 } from "lucide-react";
+import { Batch, Student, getStudentsByBatchId } from "@/lib/batches-services";
 
 interface BatchDetailsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  batch: any;
-}
-
-interface Student {
-  id: string;
-  student_id: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone: string;
-  gender: string;
-  is_active: boolean;
-  // Performance metrics
-  creativity: number;
-  leadership: number;
-  behavior: number;
-  presentation: number;
-  communication: number;
-  technical_skills: number;
-  general_performance: number;
+  batch: Batch & {
+    student_count?: number;
+    avg_attendance?: number;
+    progress?: number;
+  };
 }
 
 export function BatchDetailsDialog({
@@ -68,47 +53,26 @@ export function BatchDetailsDialog({
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Fetch students when dialog opens
+  const fetchBatchStudents = useCallback(async () => {
+    if (!batch?.id) return;
+
+    setLoading(true);
+    try {
+      const studentsData = await getStudentsByBatchId(batch.id);
+      setStudents(studentsData);
+    } catch (error) {
+      console.error("Failed to fetch students:", error);
+      setStudents([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [batch?.id]);
+
   useEffect(() => {
     if (open && batch?.id) {
       fetchBatchStudents();
     }
-  }, [open, batch?.id]);
-
-  const fetchBatchStudents = async () => {
-    setLoading(true);
-    try {
-      // You'll implement this function in your service
-      // const studentsData = await getStudentsByBatchId(batch.id);
-      // setStudents(studentsData);
-
-      // Mock data for now
-      setStudents([
-        {
-          id: "1",
-          student_id: "STU-001",
-          first_name: "John",
-          last_name: "Doe",
-          email: "john@example.com",
-          phone: "+1234567890",
-          gender: "male",
-          is_active: true,
-          creativity: 8.5,
-          leadership: 7.0,
-          behavior: 9.5,
-          presentation: 6.5,
-          communication: 8.0,
-          technical_skills: 7.5,
-          general_performance: 8.0,
-        },
-        // Add more mock students...
-      ]);
-    } catch (error) {
-      console.error("Failed to fetch students:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [open, batch?.id, fetchBatchStudents]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -125,20 +89,32 @@ export function BatchDetailsDialog({
 
   const calculateAveragePerformance = (student: Student) => {
     const metrics = [
-      student.creativity,
-      student.leadership,
-      student.behavior,
-      student.presentation,
-      student.communication,
-      student.technical_skills,
-      student.general_performance,
+      student.creativity || 0,
+      student.leadership || 0,
+      student.behavior || 0,
+      student.presentation || 0,
+      student.communication || 0,
+      student.technical_skills || 0,
+      student.general_performance || 0,
     ];
+    const validMetrics = metrics.filter((metric) => metric > 0);
+    if (validMetrics.length === 0) return "0.0";
+
     return (
-      metrics.reduce((sum, metric) => sum + metric, 0) / metrics.length
+      validMetrics.reduce((sum, metric) => sum + metric, 0) /
+      validMetrics.length
     ).toFixed(1);
   };
 
+  const calculateProgress = () => {
+    if (batch.status === "completed") return 100;
+    if (batch.status === "upcoming") return 0;
+    return Math.round(((batch.current_module - 1) / 3) * 100);
+  };
+
   if (!batch) return null;
+
+  const progress = batch.progress ?? calculateProgress();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -172,15 +148,17 @@ export function BatchDetailsDialog({
                   <div>
                     <p className="text-sm font-medium">Start Date</p>
                     <p className="text-sm text-muted-foreground">
-                      {batch.start_date}
+                      {new Date(batch.start_date).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-muted-foreground" />
                   <div>
-                    <p className="text-sm font-medium">Duration</p>
-                    <p className="text-sm text-muted-foreground">3 months</p>
+                    <p className="text-sm font-medium">End Date</p>
+                    <p className="text-sm text-muted-foreground">
+                      {new Date(batch.end_date).toLocaleDateString()}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -188,16 +166,16 @@ export function BatchDetailsDialog({
                   <div>
                     <p className="text-sm font-medium">Students</p>
                     <p className="text-sm text-muted-foreground">
-                      {batch.student_count}
+                      {batch.student_count || students.length}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <BarChart3 className="h-4 w-4 text-muted-foreground" />
                   <div>
-                    <p className="text-sm font-medium">Attendance</p>
+                    <p className="text-sm font-medium">Max Students</p>
                     <p className="text-sm text-muted-foreground">
-                      {batch.avg_attendance}%
+                      {batch.max_students}
                     </p>
                   </div>
                 </div>
@@ -218,42 +196,53 @@ export function BatchDetailsDialog({
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Overall Progress</span>
                   <span className="text-sm text-muted-foreground">
-                    {batch.progress}%
+                    {progress}%
                   </span>
                 </div>
-                <Progress value={batch.progress} className="h-2" />
+                <Progress value={progress} className="h-2" />
 
                 <div className="grid gap-3 mt-4">
-                  {[1, 2, 3].map((moduleNum) => (
-                    <div key={moduleNum} className="flex items-center gap-3">
-                      <div
-                        className={`w-3 h-3 rounded-full ${
-                          moduleNum < batch.current_module
-                            ? "bg-green-500"
-                            : moduleNum === batch.current_module
-                            ? "bg-blue-500"
-                            : "bg-gray-300"
-                        }`}
-                      />
-                      <div className="flex-1">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm font-medium">
-                            {batch[`module_${moduleNum}`]}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {moduleNum < batch.current_module
-                              ? "Completed"
-                              : moduleNum === batch.current_module
-                              ? "Current"
-                              : "Upcoming"}
-                          </span>
+                  {[1, 2, 3].map((moduleNum) => {
+                    let moduleStatus = "";
+                    let moduleColor = "";
+
+                    if (batch.status === "completed") {
+                      moduleStatus = "Completed";
+                      moduleColor = "bg-green-500";
+                    } else if (moduleNum < batch.current_module) {
+                      moduleStatus = "Completed";
+                      moduleColor = "bg-green-500";
+                    } else if (moduleNum === batch.current_module) {
+                      moduleStatus = "Current";
+                      moduleColor = "bg-blue-500";
+                    } else {
+                      moduleStatus = "Upcoming";
+                      moduleColor = "bg-gray-300";
+                    }
+
+                    return (
+                      <div key={moduleNum} className="flex items-center gap-3">
+                        <div
+                          className={`w-3 h-3 rounded-full ${moduleColor}`}
+                        />
+                        <div className="flex-1">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm font-medium">
+                              Module {moduleNum}:{" "}
+                              {
+                                batch[
+                                  `module_${moduleNum}` as keyof Batch
+                                ] as string
+                              }
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {moduleStatus}
+                            </span>
+                          </div>
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                          {batch[`module_${moduleNum}_desc`]}
-                        </p>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </CardContent>
@@ -278,69 +267,71 @@ export function BatchDetailsDialog({
               ) : students.length === 0 ? (
                 <div className="text-center py-8">
                   <p className="text-muted-foreground">
-                    No students enrolled yet
+                    No students enrolled in this batch yet
                   </p>
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Student</TableHead>
-                      <TableHead>ID</TableHead>
-                      <TableHead>Contact</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Avg Performance</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {students.map((student) => (
-                      <TableRow key={student.id}>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium">
-                              {student.first_name} {student.last_name}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {student.email}
-                            </p>
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-mono text-sm">
-                          {student.student_id}
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {student.phone}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              student.is_active ? "default" : "secondary"
-                            }
-                          >
-                            {student.is_active ? "Active" : "Inactive"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium">
-                              {calculateAveragePerformance(student)}/10
-                            </span>
-                            <div className="w-16">
-                              <Progress
-                                value={
-                                  parseFloat(
-                                    calculateAveragePerformance(student)
-                                  ) * 10
-                                }
-                                className="h-2"
-                              />
-                            </div>
-                          </div>
-                        </TableCell>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Student</TableHead>
+                        <TableHead>ID</TableHead>
+                        <TableHead>Contact</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Avg Performance</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {students.map((student) => (
+                        <TableRow key={student.id}>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium">
+                                {student.first_name} {student.last_name}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                {student.email}
+                              </p>
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">
+                            {student.student_id}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {student.phone}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                student.is_active ? "default" : "secondary"
+                              }
+                            >
+                              {student.is_active ? "Active" : "Inactive"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium">
+                                {calculateAveragePerformance(student)}/10
+                              </span>
+                              <div className="w-16">
+                                <Progress
+                                  value={
+                                    parseFloat(
+                                      calculateAveragePerformance(student)
+                                    ) * 10
+                                  }
+                                  className="h-2"
+                                />
+                              </div>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               )}
             </CardContent>
           </Card>

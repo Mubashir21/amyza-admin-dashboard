@@ -41,7 +41,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CalendarIcon, BookOpen, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { updateBatch } from "@/lib/batches-services";
+import { Batch, updateBatch } from "@/lib/batches-services";
+import { toast } from "sonner";
 
 const formSchema = z
   .object({
@@ -86,7 +87,7 @@ type FormValues = z.infer<typeof formSchema>;
 interface EditBatchDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  batch: any;
+  batch: Batch;
 }
 
 export function EditBatchDialog({
@@ -134,9 +135,9 @@ export function EditBatchDialog({
         status: batch.status || "upcoming",
         max_students: batch.max_students || 30,
         current_module: batch.current_module || 1,
-        module_1_name: batch.module_1_name || batch.module_1 || "",
-        module_2_name: batch.module_2_name || batch.module_2 || "",
-        module_3_name: batch.module_3_name || batch.module_3 || "",
+        module_1_name: batch.module_1 || "",
+        module_2_name: batch.module_2 || "",
+        module_3_name: batch.module_3 || "",
       });
     }
   }, [batch, open, form]);
@@ -173,10 +174,15 @@ export function EditBatchDialog({
       router.refresh();
 
       // Show success message
-      // toast.success("Batch updated successfully!");
-    } catch (err: any) {
+      toast.success("Batch updated successfully!");
+    } catch (err) {
       console.error("Error updating batch:", err);
-      setError(err.message || "An error occurred while updating the batch");
+
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("An error occurred while updating the batch");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -203,8 +209,8 @@ export function EditBatchDialog({
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Reactivating Completed Batch</AlertTitle>
             <AlertDescription>
-              Changing this batch from "completed" to "active" or "upcoming"
-              will:
+              Changing this batch from &quot;completed&quot; to
+              &quot;active&quot; or &quot;upcoming&quot; will:
               <ul className="list-disc list-inside mt-2 space-y-1">
                 <li>
                   Reactivate all students in this batch (set is_active = true)
@@ -417,7 +423,7 @@ export function EditBatchDialog({
                 <FormField
                   key={moduleNum}
                   control={form.control}
-                  name={`module_${moduleNum}_name` as any}
+                  name={`module_${moduleNum}` as keyof FormValues}
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Module {moduleNum} Name *</FormLabel>
@@ -430,7 +436,12 @@ export function EditBatchDialog({
                               ? "Intermediate"
                               : "Advanced"
                           } Module`}
-                          {...field}
+                          value={String(field.value || "")}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
+                          disabled={field.disabled}
                         />
                       </FormControl>
                       <FormMessage />

@@ -11,26 +11,19 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { BookOpen, CheckCircle } from "lucide-react";
 import { BatchActions } from "./batches-actions";
+import { Batch } from "@/lib/batches-services";
 
 interface BatchCardProps {
-  batch: {
-    id: string;
-    batch_code: string;
-    status: "active" | "upcoming" | "completed";
-    progress: number;
-    current_module: number;
+  batch: Batch & {
     student_count: number;
-    start_date: string;
     avg_attendance: number;
+    progress: number;
     description: string;
-    module_1: string;
-    module_2: string;
-    module_3: string;
   };
   onModuleAdvance?: (batchId: string, currentModule: number) => void;
 }
 
-export function BatchCard({ batch, onModuleAdvance }: BatchCardProps) {
+export function BatchCard({ batch }: BatchCardProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "active":

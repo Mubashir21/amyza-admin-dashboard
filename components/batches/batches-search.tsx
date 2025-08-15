@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -93,7 +93,7 @@ export function BatchesSearchClient() {
           )}
           {searchQuery && (
             <span className="px-2 py-1 bg-green-100 text-green-800 rounded">
-              Search: "{searchQuery}"
+              Search: &quot;{searchQuery}&quot;
             </span>
           )}
           <button

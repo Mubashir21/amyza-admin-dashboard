@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase/client";
+import { Student } from "./students-services";
 
 export interface RankedStudent {
   id: string;
@@ -76,7 +77,7 @@ export async function getRankingsFiltered(
     if (filters.search) {
       console.log("Applying search filter:", filters.search);
       const searchTerm = filters.search.toLowerCase();
-      students = students.filter((student: any) => {
+      students = students.filter((student: Student) => {
         return (
           student.first_name?.toLowerCase().includes(searchTerm) ||
           student.last_name?.toLowerCase().includes(searchTerm) ||
@@ -87,7 +88,7 @@ export async function getRankingsFiltered(
 
     // Calculate rankings for each student
     const rankedStudents: RankedStudent[] = await Promise.all(
-      students.map(async (student: any) => {
+      students.map(async (student: Student) => {
         // Calculate attendance percentage
         const attendancePercentage = await calculateAttendancePercentage(
           student.id

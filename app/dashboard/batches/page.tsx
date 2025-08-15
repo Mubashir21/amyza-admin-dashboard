@@ -4,7 +4,6 @@ import { BatchesSearchClient } from "@/components/batches/batches-search";
 import { BatchesStats } from "@/components/batches/batches-stats";
 import { BatchCard } from "@/components/batches/batches-card";
 import {
-  getAllBatches,
   getBatchAttendanceRates,
   getBatchesFiltered,
   getBatchStats,
@@ -20,12 +19,20 @@ interface PageProps {
   }>;
 }
 
+// Extended type for display purposes that includes all Batch properties
+interface DisplayBatch extends Batch {
+  student_count: number;
+  avg_attendance: number;
+  progress: number;
+  description: string;
+}
+
 // Transform batch data for display
 function transformBatchForDisplay(
   batch: Batch,
   studentCounts: { [batchId: string]: number },
   attendanceRates: { [batchId: string]: number }
-) {
+): DisplayBatch {
   // Calculate progress based on current module and status
   let progress = 0;
   if (batch.status === "completed") {
@@ -38,24 +45,18 @@ function transformBatchForDisplay(
   }
 
   return {
-    id: batch.id,
-    batch_code: batch.batch_code,
-    status: batch.status,
+    ...batch, // Keep all original Batch properties
+    student_count: studentCounts[batch.id] || 0,
+    avg_attendance: attendanceRates[batch.id] || 0,
     progress: Math.round(progress),
-    current_module: batch.current_module,
-    student_count: studentCounts[batch.id] || 0, // Real student count
     start_date: new Date(batch.start_date).toLocaleDateString(),
     end_date: new Date(batch.end_date).toLocaleDateString(),
-    avg_attendance: attendanceRates[batch.id] || 0, // Real attendance rate
     description:
       batch.status === "active"
         ? "Currently Running"
         : batch.status === "upcoming"
         ? "Starts Soon"
         : "Completed",
-    module_1: batch.module_1,
-    module_2: batch.module_2,
-    module_3: batch.module_3,
   };
 }
 
@@ -73,7 +74,7 @@ export default async function BatchesPage({ searchParams }: PageProps) {
 
   const transformedStats = {
     activeBatches: stats.activeBatches,
-    totalStudents: totalStudents, // Real total student count
+    totalStudents: totalStudents,
     activeModules: stats.activeModules,
     avgDuration: 3,
   };
@@ -117,14 +118,9 @@ export default async function BatchesPage({ searchParams }: PageProps) {
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
-            {transformedBatches.map((batch) => {
-              const { id, current_module, status, ...batchProps } = batch;
-              return (
-                <div key={id}>
-                  <BatchCard batch={batch} />
-                </div>
-              );
-            })}
+            {transformedBatches.map((batch) => (
+              <BatchCard key={batch.id} batch={batch} />
+            ))}
           </div>
         )}
       </ResponsiveContainer>

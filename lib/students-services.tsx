@@ -61,7 +61,7 @@ export async function generateUniqueStudentId(): Promise<string> {
 
     try {
       // Check if this ID already exists
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("students")
         .select("id")
         .eq("student_id", studentId)

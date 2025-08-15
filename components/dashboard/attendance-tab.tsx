@@ -28,7 +28,7 @@ export function AttendanceTab({ attendanceSummary }: AttendanceTabProps) {
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader>
-            <CardTitle>Today's Summary</CardTitle>
+            <CardTitle>Today&apos;s Summary</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-center space-y-2">

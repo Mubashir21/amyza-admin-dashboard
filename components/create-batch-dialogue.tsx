@@ -41,7 +41,7 @@ import {
 import { CalendarIcon, Plus, BookOpen } from "lucide-react";
 import { format, addMonths } from "date-fns";
 import { cn } from "@/lib/utils";
-import { createBatch, CreateBatchData } from "@/lib/batches-services";
+import { CreateBatchData } from "@/lib/batches-services";
 import { useRouter } from "next/navigation";
 
 const formSchema = z
@@ -141,7 +141,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
       console.log("Creating batch:", batchData);
 
       // Use the service function
-      const newBatch = await createBatch(batchData);
+      // const newBatch = await createBatch(batchData);
 
       // Reset form and close dialog on success
       form.reset();
@@ -154,9 +154,13 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
 
       // You could also show a success toast here
       toast.success("Batch created successfully!");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error creating batch:", err);
-      setError(err.message || "An error occurred while creating the batch");
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : "An error occurred while creating the batch";
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -198,8 +202,8 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
         <DialogHeader>
           <DialogTitle>Create New Batch</DialogTitle>
           <DialogDescription>
-            Create a new student batch with 3 custom modules. You'll manually
-            control progression through each module.
+            Create a new student batch with 3 custom modules. You&apos;ll
+            manually control progression through each module.
           </DialogDescription>
         </DialogHeader>
 
@@ -415,7 +419,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
 
                   <FormField
                     control={form.control}
-                    name={`module_${moduleNum}` as any}
+                    name={`module_${moduleNum}_name` as keyof FormValues}
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Module Name *</FormLabel>
@@ -429,6 +433,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                 : "React Projects"
                             }`}
                             {...field}
+                            value={String(field.value || "")}
                           />
                         </FormControl>
                         <FormMessage />

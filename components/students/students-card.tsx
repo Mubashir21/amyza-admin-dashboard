@@ -239,8 +239,8 @@ export function StudentCard({ student, batches = [] }: StudentCardProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Student</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{student.first_name}{" "}
-              {student.last_name}" (ID: {student.student_id})? This action
+              Are you sure you want to delete &quot;{student.first_name}{" "}
+              {student.last_name}&quot; (ID: {student.student_id})? This action
               cannot be undone and will also delete all associated attendance
               records and performance data.
             </AlertDialogDescription>

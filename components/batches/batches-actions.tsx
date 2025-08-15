@@ -27,22 +27,30 @@ import {
   SkipForward,
   CheckCircle,
   Trash2,
-  Users,
+  // Users,
   Play,
+  Eye,
 } from "lucide-react";
 import {
   updateBatchModule,
   updateBatchStatus,
   deleteBatch,
   completeBatch,
+  type Batch,
 } from "@/lib/batches-services";
 import { EditBatchDialog } from "./batches-edit-dialog";
+import { BatchDetailsDialog } from "./batches-details-dialog";
 
 interface BatchActionsProps {
   batchId: string;
   currentModule: number;
   status: "active" | "upcoming" | "completed";
-  batch: any; // The full batch object for editing
+  batch: Batch & {
+    student_count?: number;
+    avg_attendance?: number;
+    progress?: number;
+    description?: string;
+  };
 }
 
 export function BatchActions({
@@ -52,6 +60,7 @@ export function BatchActions({
   batch,
 }: BatchActionsProps) {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [showCompleteDialog, setShowCompleteDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -164,14 +173,14 @@ export function BatchActions({
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
 
+            <DropdownMenuItem onClick={() => setIsDetailsDialogOpen(true)}>
+              <Eye className="mr-2 h-4 w-4" />
+              View Details
+            </DropdownMenuItem>
+
             <DropdownMenuItem onClick={() => setIsEditDialogOpen(true)}>
               <Edit className="mr-2 h-4 w-4" />
               Edit Batch
-            </DropdownMenuItem>
-
-            <DropdownMenuItem>
-              <Users className="mr-2 h-4 w-4" />
-              View Students
             </DropdownMenuItem>
 
             <DropdownMenuSeparator />
@@ -198,6 +207,13 @@ export function BatchActions({
       <EditBatchDialog
         open={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
+        batch={batch}
+      />
+
+      {/* Details Dialog */}
+      <BatchDetailsDialog
+        open={isDetailsDialogOpen}
+        onOpenChange={setIsDetailsDialogOpen}
         batch={batch}
       />
 

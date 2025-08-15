@@ -77,7 +77,8 @@ export function LoginForm({
         setError(null);
         setShowResendButton(false);
       }
-    } catch (err) {
+    } catch (err: unknown) {
+      console.error("Failed to resend confirmation email:", err);
       setError("Failed to resend confirmation email.");
     } finally {
       setIsLoading(false);
@@ -92,17 +93,19 @@ export function LoginForm({
     try {
       await signIn(values.email, values.password);
       router.push("/dashboard");
-    } catch (err: any) {
-      if (err.message.includes("Email not confirmed")) {
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+
+      if (errorMessage.includes("Email not confirmed")) {
         setError("Please confirm your email address before signing in.");
         setShowResendButton(true);
         setResendEmail(values.email);
-      } else if (err.message.includes("Invalid login credentials")) {
+      } else if (errorMessage.includes("Invalid login credentials")) {
         setError(
           "Invalid email or password. Please check your credentials and try again."
         );
       } else {
-        setError(err.message || "An error occurred during login");
+        setError(errorMessage || "An error occurred during login");
       }
     } finally {
       setIsLoading(false);

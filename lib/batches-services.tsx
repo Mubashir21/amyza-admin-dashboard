@@ -27,6 +27,49 @@ export interface CreateBatchData {
   module_2: string;
   module_3: string;
 }
+export interface Student {
+  id: string;
+  student_id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string;
+  gender: string;
+  is_active: boolean;
+  creativity: number;
+  leadership: number;
+  behavior: number;
+  presentation: number;
+  communication: number;
+  technical_skills: number;
+  general_performance: number;
+  batch_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// Get students by batch ID
+export async function getStudentsByBatchId(
+  batchId: string
+): Promise<Student[]> {
+  try {
+    const { data, error } = await supabase
+      .from("students")
+      .select("*")
+      .eq("batch_id", batchId)
+      .order("first_name", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching students:", error);
+      throw new Error(error.message);
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("Failed to fetch students by batch ID:", error);
+    throw error;
+  }
+}
 
 // Fetch all batches
 export async function getAllBatches(): Promise<Batch[]> {
@@ -440,7 +483,6 @@ export async function getBatchStudentCounts(): Promise<{
   }
 }
 
-// Get attendance percentage for each batch
 export async function getBatchAttendanceRates(): Promise<{
   [batchId: string]: number;
 }> {
@@ -457,12 +499,23 @@ export async function getBatchAttendanceRates(): Promise<{
       return {};
     }
 
+    // Define the correct type for the query result
+    type AttendanceRecord = {
+      id: string;
+      student_id: string;
+      status: string;
+      students: {
+        batch_id: string;
+      }[];
+    };
+
     const batchStats: {
       [batchId: string]: { total: number; present: number };
     } = {};
 
-    data?.forEach((record: any) => {
-      const batchId = record.students?.batch_id;
+    (data as AttendanceRecord[])?.forEach((record) => {
+      // Since students is an array, get the first item
+      const batchId = record.students?.[0]?.batch_id;
       if (batchId) {
         if (!batchStats[batchId]) {
           batchStats[batchId] = { total: 0, present: 0 };
