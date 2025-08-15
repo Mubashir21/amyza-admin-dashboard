@@ -11,10 +11,8 @@ import {
 import { ResponsiveContainer } from "@/components/responsive-container";
 import {
   Home,
-  ArrowLeft,
   GraduationCap,
   Users,
-  BookOpen,
   BarChart3,
   AlertTriangle,
   Trophy,
