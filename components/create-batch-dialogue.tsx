@@ -41,7 +41,7 @@ import {
 import { CalendarIcon, Plus, BookOpen } from "lucide-react";
 import { format, addMonths } from "date-fns";
 import { cn } from "@/lib/utils";
-import { CreateBatchData } from "@/lib/batches-services";
+import { createBatch, CreateBatchData } from "@/lib/batches-services";
 import { useRouter } from "next/navigation";
 
 const formSchema = z
@@ -141,7 +141,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
       console.log("Creating batch:", batchData);
 
       // Use the service function
-      // const newBatch = await createBatch(batchData);
+      const newBatch = await createBatch(batchData);
 
       // Reset form and close dialog on success
       form.reset();
