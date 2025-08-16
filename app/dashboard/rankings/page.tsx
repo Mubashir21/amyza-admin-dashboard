@@ -16,17 +16,19 @@ interface PageProps {
   searchParams: Promise<{
     search?: string;
     batch?: string;
+    batchStatus?: "all" | "active" | "completed";
   }>;
 }
 
 export default async function RankingsPage({ searchParams }: PageProps) {
   const resolvedSearchParams = await searchParams;
+  const batchStatus = resolvedSearchParams.batchStatus || "all";
 
   const [rankings, stats, categories, batches, students] = await Promise.all([
     getRankingsFiltered(resolvedSearchParams),
-    getRankingsStats(),
-    getPerformanceCategories(),
-    getBatchesForRankings(),
+    getRankingsStats(resolvedSearchParams),
+    getPerformanceCategories(resolvedSearchParams),
+    getBatchesForRankings(batchStatus),
     getStudentsForAttendance(),
   ]);
 
@@ -39,12 +41,15 @@ export default async function RankingsPage({ searchParams }: PageProps) {
 
       {/* Search/Filter Bar */}
       <ResponsiveContainer>
-        <RankingsSearchClient batches={batches} />
+        <RankingsSearchClient
+          batches={batches}
+          currentBatchStatus={batchStatus}
+        />
       </ResponsiveContainer>
 
       {/* Rankings Stats */}
       <ResponsiveContainer>
-        <RankingsStats stats={stats} />
+        <RankingsStats stats={stats} currentFilter={batchStatus} />
       </ResponsiveContainer>
 
       {/* Rankings List */}

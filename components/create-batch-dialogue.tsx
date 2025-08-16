@@ -68,8 +68,8 @@ const formSchema = z
       .min(1, {
         message: "Maximum students must be at least 1.",
       })
-      .max(100, {
-        message: "Maximum students cannot exceed 100.",
+      .max(10, {
+        message: "Maximum students cannot exceed 10.",
       }),
     // Module names
     module_1: z.string().min(1, "Module 1 name is required"),
@@ -141,7 +141,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
       console.log("Creating batch:", batchData);
 
       // Use the service function
-      const newBatch = await createBatch(batchData);
+      await createBatch(batchData);
 
       // Reset form and close dialog on success
       form.reset();
@@ -375,7 +375,6 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                     </FormItem>
                   )}
                 />
-
                 <FormField
                   control={form.control}
                   name="max_students"
@@ -388,9 +387,18 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                           min="1"
                           max="100"
                           {...field}
-                          onChange={(e) =>
-                            field.onChange(parseInt(e.target.value) || 0)
-                          }
+                          value={field.value || ""} // Show empty string instead of 0
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (value === "") {
+                              field.onChange(undefined); // Set to undefined for empty
+                            } else {
+                              const numValue = parseInt(value);
+                              field.onChange(
+                                isNaN(numValue) ? undefined : numValue
+                              );
+                            }
+                          }}
                         />
                       </FormControl>
                       <FormMessage />
@@ -419,7 +427,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
 
                   <FormField
                     control={form.control}
-                    name={`module_${moduleNum}_name` as keyof FormValues}
+                    name={`module_${moduleNum}` as keyof FormValues}
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Module Name *</FormLabel>

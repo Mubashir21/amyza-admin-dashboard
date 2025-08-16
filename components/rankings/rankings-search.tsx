@@ -12,18 +12,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Filter, Download } from "lucide-react";
+import { Search, Filter, Download, Calendar } from "lucide-react";
 
 interface Batch {
   id: string;
   batch_code: string;
+  status: string; // Changed from is_active to status
 }
 
 interface RankingsSearchClientProps {
   batches: Batch[];
+  currentBatchStatus: "all" | "active" | "completed";
 }
 
-export function RankingsSearchClient({ batches }: RankingsSearchClientProps) {
+export function RankingsSearchClient({
+  batches,
+  currentBatchStatus,
+}: RankingsSearchClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [search, setSearch] = useState(searchParams.get("search") ?? "");
@@ -38,6 +43,18 @@ export function RankingsSearchClient({ batches }: RankingsSearchClientProps) {
     }
     router.push(`?${params.toString()}`);
   }, [search, searchParams, router]);
+
+  const handleBatchStatusFilter = (status: string) => {
+    const params = new URLSearchParams(searchParams);
+    if (status === "all") {
+      params.delete("batchStatus");
+    } else {
+      params.set("batchStatus", status);
+    }
+    // Clear specific batch filter when changing status
+    params.delete("batch");
+    router.push(`?${params.toString()}`);
+  };
 
   const handleBatchFilter = (batchId: string) => {
     const params = new URLSearchParams(searchParams);
@@ -56,7 +73,7 @@ export function RankingsSearchClient({ batches }: RankingsSearchClientProps) {
 
   return (
     <Card>
-      <CardContent>
+      <CardContent className="pt-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -67,20 +84,41 @@ export function RankingsSearchClient({ batches }: RankingsSearchClientProps) {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
+
           <div className="flex gap-2">
+            {/* Batch Status Filter */}
+            <Select
+              onValueChange={handleBatchStatusFilter}
+              value={currentBatchStatus}
+            >
+              <SelectTrigger className="w-[160px]">
+                <Calendar className="mr-2 h-4 w-4" />
+                <SelectValue placeholder="Batch Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="active">Active Only</SelectItem>
+                <SelectItem value="completed">Completed Only</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Specific Batch Filter */}
             <Select
               onValueChange={handleBatchFilter}
-              defaultValue={searchParams.get("batch") ?? "all"}
+              value={searchParams.get("batch") ?? "all"}
             >
               <SelectTrigger className="w-[140px]">
                 <Filter className="mr-2 h-4 w-4" />
-                <SelectValue placeholder="Filter by Batch" />
+                <SelectValue placeholder="Specific Batch" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Batches</SelectItem>
+                <SelectItem value="all">All Listed</SelectItem>
                 {batches.map((batch) => (
                   <SelectItem key={batch.id} value={batch.id}>
                     {batch.batch_code}
+                    {batch.status === "active" && (
+                      <span className="ml-2 text-xs text-green-600">●</span>
+                    )}
                   </SelectItem>
                 ))}
               </SelectContent>

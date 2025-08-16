@@ -7,7 +7,7 @@ import {
   // Calendar,
   // BarChart3,
   GraduationCap,
-  Settings,
+  // Settings,
   UserCheck,
   Trophy,
 } from "lucide-react";
@@ -70,16 +70,16 @@ const navData = {
         },
       ],
     },
-    {
-      title: "System",
-      items: [
-        {
-          title: "Settings",
-          url: "/dashboard/settings",
-          icon: Settings,
-        },
-      ],
-    },
+    // {
+    //   title: "System",
+    //   items: [
+    //     {
+    //       title: "Settings",
+    //       url: "/dashboard/settings",
+    //       icon: Settings,
+    //     },
+    //   ],
+    // },
   ],
 };
 

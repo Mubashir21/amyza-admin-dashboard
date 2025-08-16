@@ -275,6 +275,37 @@ export async function createStudent(data: CreateStudentData): Promise<Student> {
   }
 }
 
+// Helper function to calculate attendance percentage for a student
+async function calculateAttendancePercentage(
+  studentId: string
+): Promise<number> {
+  try {
+    const { data, error } = await supabase
+      .from("attendance")
+      .select("status")
+      .eq("student_id", studentId);
+
+    if (error) {
+      console.error("Error fetching attendance:", error);
+      return 0;
+    }
+
+    if (!data || data.length === 0) {
+      return 0;
+    }
+
+    const presentCount = data.filter(
+      (record) => record.status === "present" || record.status === "late"
+    ).length;
+
+    return Math.round((presentCount / data.length) * 100);
+  } catch (error) {
+    console.error("Error calculating attendance:", error);
+    return 0;
+  }
+}
+
+// Updated function that includes real attendance data
 export async function getStudentsFiltered(filters?: {
   search?: string;
   batch?: string;
@@ -316,9 +347,133 @@ export async function getStudentsFiltered(filters?: {
       throw new Error(error.message);
     }
 
-    return data || [];
+    const students = data || [];
+
+    // Calculate attendance percentage for each student
+    const studentsWithAttendance = await Promise.all(
+      students.map(async (student) => {
+        const attendancePercentage = await calculateAttendancePercentage(
+          student.id
+        );
+
+        return {
+          ...student,
+          attendance_percentage: attendancePercentage,
+        };
+      })
+    );
+
+    return studentsWithAttendance;
   } catch (error) {
     console.error("Failed to fetch students:", error);
+    throw error;
+  }
+}
+
+// Alternative: More efficient version using a single query for all attendance data
+export async function getStudentsFilteredOptimized(filters?: {
+  search?: string;
+  batch?: string;
+  status?: string;
+}): Promise<Student[]> {
+  try {
+    let query = supabase.from("students").select(`
+        *,
+        batch:batches(id, batch_code, current_module),
+        attendance(id, status)
+      `);
+
+    // Apply same filters as before
+    if (filters?.search) {
+      query = query.or(
+        `first_name.ilike.%${filters.search}%,last_name.ilike.%${filters.search}%,student_id.ilike.%${filters.search}%,email.ilike.%${filters.search}%`
+      );
+    }
+
+    if (filters?.batch && filters.batch !== "all") {
+      query = query.eq("batch_id", filters.batch);
+    }
+
+    if (filters?.status && filters.status !== "all") {
+      const isActive = filters.status === "active";
+      query = query.eq("is_active", isActive);
+    }
+
+    const { data, error } = await query.order("first_name", {
+      ascending: true,
+    });
+
+    if (error) {
+      console.error("Error fetching students:", error);
+      throw new Error(error.message);
+    }
+
+    const students = data || [];
+
+    // Calculate attendance percentage from the fetched attendance data
+    const studentsWithAttendance = students.map((student) => {
+      const attendance = student.attendance || [];
+      const totalRecords = attendance.length;
+
+      if (totalRecords === 0) {
+        return {
+          ...student,
+          attendance_percentage: 0,
+        };
+      }
+
+      const presentCount = attendance.filter(
+        (record: { status: string }) =>
+          record.status === "present" || record.status === "late"
+      ).length;
+
+      const attendancePercentage = Math.round(
+        (presentCount / totalRecords) * 100
+      );
+
+      return {
+        ...student,
+        attendance_percentage: attendancePercentage,
+      };
+    });
+
+    return studentsWithAttendance;
+  } catch (error) {
+    console.error("Failed to fetch students:", error);
+    throw error;
+  }
+}
+
+// Also update getStudentsWithMetrics to use real attendance data
+export async function getStudentsWithMetrics(filters?: {
+  search?: string;
+  batch?: string;
+  status?: string;
+}): Promise<Student[]> {
+  try {
+    // Get filtered students with real attendance data
+    const students = await getStudentsFiltered(filters);
+
+    // Add rankings and total score calculations
+    return students
+      .map((student) => ({
+        ...student,
+        total_score:
+          student.creativity +
+          student.leadership +
+          student.behavior +
+          student.presentation +
+          student.communication +
+          student.technical_skills +
+          student.general_performance,
+      }))
+      .sort((a, b) => b.total_score - a.total_score) // Sort by total score
+      .map((student, index) => ({
+        ...student,
+        rank: index + 1, // Assign rank based on sorted position
+      }));
+  } catch (error) {
+    console.error("Failed to fetch students with metrics:", error);
     throw error;
   }
 }
@@ -372,36 +527,6 @@ export async function getStudentsStats(): Promise<StudentsStatsData> {
     };
   } catch (error) {
     console.error("Failed to fetch student stats:", error);
-    throw error;
-  }
-}
-
-// Get students with calculated rankings and attendance
-export async function getStudentsWithMetrics(filters?: {
-  search?: string;
-  batch?: string;
-  status?: string;
-}): Promise<Student[]> {
-  try {
-    // Get filtered students first
-    const students = await getStudentsFiltered(filters);
-
-    // Add placeholder metrics (replace with real calculations)
-    return students.map((student, index) => ({
-      ...student,
-      attendance_percentage: Math.floor(Math.random() * 20) + 80, // 80-100%
-      rank: index + 1,
-      total_score:
-        student.creativity +
-        student.leadership +
-        student.behavior +
-        student.presentation +
-        student.communication +
-        student.technical_skills +
-        student.general_performance,
-    }));
-  } catch (error) {
-    console.error("Failed to fetch students with metrics:", error);
     throw error;
   }
 }

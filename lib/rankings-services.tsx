@@ -31,6 +31,7 @@ export interface RankingsStats {
   };
   totalStudents: number;
   activeBatches: number;
+  completedBatches: number;
 }
 
 export interface PerformanceCategory {
@@ -41,6 +42,7 @@ export interface PerformanceCategory {
 
 interface RankingsFilters {
   search?: string;
+  batchStatus?: "all" | "active" | "completed";
   batch?: string;
 }
 
@@ -50,17 +52,23 @@ export async function getRankingsFiltered(
   try {
     let query = supabase.from("students").select(`
         *,
-        batch:batches(batch_code)
+        batch:batches!inner(batch_code, status)
       `);
 
-    // Apply batch filter
-    if (filters.batch && filters.batch !== "all") {
-      console.log("Applying batch filter:", filters.batch);
-      query = query.eq("batch_id", filters.batch);
+    // Apply batch status filter at SQL level
+    if (filters.batchStatus === "active") {
+      query = query.eq("batches.status", "active");
+    } else if (filters.batchStatus === "completed") {
+      query = query.eq("batches.status", "completed");
+    } else {
+      // Default: exclude upcoming batches at SQL level
+      query = query.in("batches.status", ["active", "completed"]);
     }
 
-    // Only get active students
-    query = query.eq("is_active", true);
+    // Apply specific batch filter
+    if (filters.batch && filters.batch !== "all") {
+      query = query.eq("batch_id", filters.batch);
+    }
 
     const { data, error } = await query.order("first_name");
 
@@ -69,13 +77,26 @@ export async function getRankingsFiltered(
       throw new Error(error.message);
     }
 
-    console.log("Fetched students for rankings:", data);
-
     let students = data || [];
 
-    // Apply search filter on the client side
+    // ✅ Apply is_active filter intelligently based on batch status
+    if (filters.batchStatus === "active") {
+      // For active batches, only show active students
+      students = students.filter((s) => s.is_active === true);
+    } else if (filters.batchStatus === "completed") {
+      // For completed batches, show ALL students (regardless of is_active)
+      // Because completed batch students are automatically set to inactive
+    } else {
+      // For "all" - show active students from active batches + all students from completed batches
+      students = students.filter(
+        (s) =>
+          (s.batch?.status === "active" && s.is_active === true) ||
+          s.batch?.status === "completed" // Show all students from completed batches
+      );
+    }
+
+    // Apply search filter (keep this in JavaScript)
     if (filters.search) {
-      console.log("Applying search filter:", filters.search);
       const searchTerm = filters.search.toLowerCase();
       students = students.filter((student: Student) => {
         return (
@@ -89,12 +110,9 @@ export async function getRankingsFiltered(
     // Calculate rankings for each student
     const rankedStudents: RankedStudent[] = await Promise.all(
       students.map(async (student: Student) => {
-        // Calculate attendance percentage
         const attendancePercentage = await calculateAttendancePercentage(
           student.id
         );
-
-        // Calculate overall score from performance metrics
         const overallScore = calculateOverallScore({
           creativity: student.creativity || 0,
           leadership: student.leadership || 0,
@@ -120,12 +138,11 @@ export async function getRankingsFiltered(
           behavior: student.behavior || 0,
           presentation: student.presentation || 0,
           general_performance: student.general_performance || 0,
-          rank: 0, // Will be set after sorting
+          rank: 0,
         };
       })
     );
 
-    // Sort by overall score and assign ranks
     rankedStudents.sort((a, b) => b.overall_score - a.overall_score);
     rankedStudents.forEach((student, index) => {
       student.rank = index + 1;
@@ -138,17 +155,20 @@ export async function getRankingsFiltered(
   }
 }
 
-export async function getRankingsStats(): Promise<RankingsStats> {
+export async function getRankingsStats(
+  filters: RankingsFilters = {}
+): Promise<RankingsStats> {
   try {
-    const students = await getRankingsFiltered();
+    const students = await getRankingsFiltered(filters);
 
     if (students.length === 0) {
       return {
-        topPerformer: { name: "N/A", score: 0 },
+        topPerformer: { name: "No students", score: 0 },
         averageScore: 0,
-        mostImproved: { name: "N/A", improvement: 0 },
+        mostImproved: { name: "No data", improvement: 0 },
         totalStudents: 0,
         activeBatches: 0,
+        completedBatches: 0,
       };
     }
 
@@ -157,14 +177,30 @@ export async function getRankingsStats(): Promise<RankingsStats> {
       students.reduce((sum, student) => sum + student.overall_score, 0) /
       students.length;
 
-    // Get active batches count
-    const { data: batches, error: batchError } = await supabase
-      .from("batches")
-      .select("id")
-      .eq("status", "active");
+    // Get batch counts based on current filter
+    let activeBatchesCount = 0;
+    let completedBatchesCount = 0;
 
-    if (batchError) {
-      console.error("Error fetching active batches:", batchError);
+    if (filters.batchStatus === "active") {
+      const { data: activeBatches } = await supabase
+        .from("batches")
+        .select("id")
+        .eq("status", "active");
+      activeBatchesCount = activeBatches?.length || 0;
+    } else if (filters.batchStatus === "completed") {
+      const { data: completedBatches } = await supabase
+        .from("batches")
+        .select("id")
+        .eq("status", "completed");
+      completedBatchesCount = completedBatches?.length || 0;
+    } else {
+      // For "all", get both counts
+      const [activeBatches, completedBatches] = await Promise.all([
+        supabase.from("batches").select("id").eq("status", "active"),
+        supabase.from("batches").select("id").eq("status", "completed"),
+      ]);
+      activeBatchesCount = activeBatches.data?.length || 0;
+      completedBatchesCount = completedBatches.data?.length || 0;
     }
 
     return {
@@ -174,11 +210,12 @@ export async function getRankingsStats(): Promise<RankingsStats> {
       },
       averageScore: parseFloat(averageScore.toFixed(1)),
       mostImproved: {
-        name: "Mike Davis", // This would need tracking over time
-        improvement: 1.5,
+        name: "Coming soon", // This needs historical data tracking
+        improvement: 0,
       },
       totalStudents: students.length,
-      activeBatches: batches?.length || 0,
+      activeBatches: activeBatchesCount,
+      completedBatches: completedBatchesCount,
     };
   } catch (error) {
     console.error("Failed to fetch rankings stats:", error);
@@ -186,11 +223,11 @@ export async function getRankingsStats(): Promise<RankingsStats> {
   }
 }
 
-export async function getPerformanceCategories(): Promise<
-  PerformanceCategory[]
-> {
+export async function getPerformanceCategories(
+  filters: RankingsFilters = {}
+): Promise<PerformanceCategory[]> {
   try {
-    const students = await getRankingsFiltered();
+    const students = await getRankingsFiltered(filters);
 
     if (students.length === 0) {
       return [
@@ -260,29 +297,29 @@ export async function getPerformanceCategories(): Promise<
   }
 }
 
-export async function getBatchesForRankings() {
-  try {
-    const { data, error } = await supabase
-      .from("batches")
-      .select(
-        `
-        id,
-        batch_code
-      `
-      )
-      .eq("status", "active")
-      .order("batch_code");
+export async function getBatchesForRankings(
+  status?: "all" | "active" | "completed"
+) {
+  let query = supabase.from("batches").select("*");
 
-    if (error) {
-      console.error("Error fetching batches:", error);
-      throw new Error(error.message);
-    }
-
-    return data || [];
-  } catch (error) {
-    console.error("Failed to fetch batches:", error);
-    throw error;
+  if (status === "active") {
+    // Show only active batches
+    query = query.eq("status", "active");
+  } else if (status === "completed") {
+    // Show only completed batches
+    query = query.eq("status", "completed");
+  } else {
+    // For "all" (or no status) - show ONLY active and completed, NEVER upcoming
+    query = query.in("status", ["active", "completed"]);
   }
+
+  const { data, error } = await query.order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching batches:", error);
+    return [];
+  }
+  return data || [];
 }
 
 // Helper function to calculate attendance percentage for a student
