@@ -6,7 +6,7 @@ export const AUTH_CONFIG = {
   AUTHORIZED_EMAILS: [
     "mubashirshoukat@gmail.com",
     "muzaffarrocks06@gmail.com",
-    // Add your actual email addresses here
+    "mohammedshoukat@gmail.com",
   ],
 
   //   // You can add other config here too
