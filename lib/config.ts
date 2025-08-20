@@ -8,6 +8,9 @@ export const AUTH_CONFIG = {
     "muzaffarrocks06@gmail.com",
     "mohammedshoukat@gmail.com",
     "mkloon12@gmail.com",
+    "naannmo0@gmail.com",
+    "Odaibinomar@gmail.com",
+    "Ahmedalgunid259@gmail.com",
   ],
 
   //   // You can add other config here too
