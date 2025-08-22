@@ -75,43 +75,67 @@ export function BulkAttendanceMarker({
 
   const router = useRouter();
 
-  // Load students when batch is selected
-  const loadStudents = useCallback(async () => {
+  // Load students and existing attendance when batch and date are selected
+  const loadStudentsAndAttendance = useCallback(async () => {
     if (!selectedBatch) return;
 
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
+      // Load students
+      const { data: studentsData, error: studentsError } = await supabase
         .from("students")
         .select("id, student_id, first_name, last_name, batch_id")
         .eq("batch_id", selectedBatch)
         .eq("is_active", true)
         .order("first_name");
 
-      if (error) throw error;
+      if (studentsError) throw studentsError;
 
-      setStudents(data || []);
+      setStudents(studentsData || []);
 
-      // Initialize attendance state as empty (no default selection)
+      // Load existing attendance for the selected date
+      const formatDateSafely = (date: Date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      };
+
+      const formattedDate = formatDateSafely(selectedDate);
+
+      const { data: existingAttendance, error: attendanceError } = await supabase
+        .from("attendance")
+        .select("student_id, status")
+        .eq("batch_id", selectedBatch)
+        .eq("date", formattedDate);
+
+      if (attendanceError) throw attendanceError;
+
+      // Initialize attendance state with existing data or empty
       const initialAttendance: AttendanceState = {};
+      if (existingAttendance) {
+        existingAttendance.forEach((record) => {
+          initialAttendance[record.student_id] = record.status as "present" | "absent" | "late";
+        });
+      }
       setAttendance(initialAttendance);
     } catch (error) {
-      console.error("Error loading students:", error);
-      toast.error("Failed to load students");
+      console.error("Error loading data:", error);
+      toast.error("Failed to load students and attendance");
     } finally {
       setIsLoading(false);
     }
-  }, [selectedBatch]); // Add selectedBatch as dependency
+  }, [selectedBatch, selectedDate]); // Add both selectedBatch and selectedDate as dependencies
 
-  // Load students when batch is selected
+  // Load students and attendance when batch or date changes
   useEffect(() => {
     if (selectedBatch) {
-      loadStudents();
+      loadStudentsAndAttendance();
     } else {
       setStudents([]);
       setAttendance({});
     }
-  }, [selectedBatch, loadStudents]); // Add loadStudents to dependencies
+  }, [selectedBatch, selectedDate, loadStudentsAndAttendance]); // Add selectedDate and loadStudentsAndAttendance to dependencies
 
   const updateAttendance = (
     studentId: string,
@@ -168,30 +192,17 @@ export function BulkAttendanceMarker({
         notes: null,
       }));
 
-      // Check if attendance already exists for this date and batch
-      const { data: existing, error: checkError } = await supabase
-        .from("attendance")
-        .select("student_id")
-        .eq("batch_id", selectedBatch)
-        .eq("date", formattedDate);
-
-      if (checkError) throw checkError;
-
-      if (existing && existing.length > 0) {
-        toast.error(
-          "Attendance has already been marked for this date and batch"
-        );
-        return;
-      }
-
-      // Insert all attendance records
+      // Use upsert to handle both new and existing attendance records
       const { error } = await supabase
         .from("attendance")
-        .insert(attendanceRecords);
+        .upsert(attendanceRecords, {
+          onConflict: "student_id,date,batch_id",
+          ignoreDuplicates: false
+        });
 
       if (error) throw error;
 
-      toast.success(`Attendance marked for ${students.length} students`);
+      toast.success(`Attendance saved for ${students.length} students`);
       router.refresh();
       onAttendanceMarked?.();
 
@@ -229,7 +240,7 @@ export function BulkAttendanceMarker({
       case "absent":
         return "border-red-300 bg-red-50/50";
       case "late":
-        return "border-orange-300 bg-orange-50/50";
+        return "border-yellow-300 bg-yellow-50/50";
       default:
         return "border-gray-200 bg-gray-50/50"; // For unmarked students
     }
@@ -365,7 +376,7 @@ export function BulkAttendanceMarker({
                 variant="outline"
                 size="sm"
                 onClick={() => markAllAs("late")}
-                className="text-orange-700 border-orange-200 hover:bg-orange-50"
+                className="text-yellow-700 border-yellow-200 hover:bg-yellow-50"
               >
                 <Clock className="mr-1 h-4 w-4" />
                 Mark All Late
@@ -396,7 +407,7 @@ export function BulkAttendanceMarker({
                 <Badge variant="outline" className="text-red-700">
                   Absent: {absentCount}
                 </Badge>
-                <Badge variant="outline" className="text-orange-700">
+                <Badge variant="outline" className="text-yellow-700">
                   Late: {lateCount}
                 </Badge>
                 {unmarkedCount > 0 && (
@@ -455,7 +466,7 @@ export function BulkAttendanceMarker({
                             "bg-red-600 hover:bg-red-700",
                           attendance[student.id] === status &&
                             status === "late" &&
-                            "bg-orange-600 hover:bg-orange-700"
+                            "bg-yellow-600 hover:bg-yellow-700"
                         )}
                       >
                         {getStatusIcon(status)}

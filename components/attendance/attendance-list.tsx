@@ -1,3 +1,5 @@
+"use client"
+import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -6,7 +8,18 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle, Clock, AlertCircle } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { 
+  CheckCircle, 
+  XCircle, 
+  Clock, 
+  AlertCircle, 
+  TrendingUp, 
+  Users,
+  ChevronDown,
+  ChevronRight
+} from "lucide-react";
 
 interface AttendanceRecord {
   id: string;
@@ -32,78 +45,98 @@ interface AttendanceListProps {
   records: AttendanceRecord[];
 }
 
-export function AttendanceList({ records }: AttendanceListProps) {
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "present":
-        return "bg-green-100 text-green-800 hover:bg-green-200";
-      case "absent":
-        return "bg-red-100 text-red-800 hover:bg-red-200";
-      case "late":
-        return "bg-orange-100 text-orange-800 hover:bg-orange-200";
-      case "excused":
-        return "bg-blue-100 text-blue-800 hover:bg-blue-200";
-      default:
-        return "bg-gray-100 text-gray-800 hover:bg-gray-200";
+export function AttendanceAnalytics({ records }: AttendanceListProps) {
+  const [expandedBatches, setExpandedBatches] = useState<Set<string>>(new Set());
+
+  const toggleBatch = (batchCode: string) => {
+    const newExpanded = new Set(expandedBatches);
+    if (newExpanded.has(batchCode)) {
+      newExpanded.delete(batchCode);
+    } else {
+      newExpanded.add(batchCode);
     }
+    setExpandedBatches(newExpanded);
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "present":
-        return <CheckCircle className="h-4 w-4" />;
-      case "absent":
-        return <XCircle className="h-4 w-4" />;
-      case "late":
-        return <Clock className="h-4 w-4" />;
-      case "excused":
-        return <AlertCircle className="h-4 w-4" />;
-      default:
-        return null;
+  // Calculate analytics
+  const totalRecords = records.length;
+  const presentCount = records.filter(r => r.status === "present").length;
+  const absentCount = records.filter(r => r.status === "absent").length;
+  const lateCount = records.filter(r => r.status === "late").length;
+  
+  const attendanceRate = totalRecords > 0 ? Math.round((presentCount / totalRecords) * 100) : 0;
+  const lateRate = totalRecords > 0 ? Math.round((lateCount / totalRecords) * 100) : 0;
+
+  // Group by batch
+  const batchStats = records.reduce((acc, record) => {
+    const batchCode = record.batch.batch_code;
+    if (!acc[batchCode]) {
+      acc[batchCode] = { total: 0, present: 0, absent: 0, late: 0 };
     }
+    acc[batchCode].total++;
+    acc[batchCode][record.status as keyof typeof acc[typeof batchCode]]++;
+    return acc;
+  }, {} as Record<string, { total: number; present: number; absent: number; late: number }>);
+
+  // Find students with attendance issues (more than 1 absence in recent records)
+  const studentAttendance = records.reduce((acc, record) => {
+    const studentKey = `${record.student.first_name} ${record.student.last_name}`;
+    if (!acc[studentKey]) {
+      acc[studentKey] = { total: 0, absent: 0, late: 0, batch: record.batch.batch_code };
+    }
+    acc[studentKey].total++;
+    if (record.status === "absent") acc[studentKey].absent++;
+    if (record.status === "late") acc[studentKey].late++;
+    return acc;
+  }, {} as Record<string, { total: number; absent: number; late: number; batch: string }>);
+
+  const atRiskStudents = Object.entries(studentAttendance)
+    .filter(([_, stats]) => stats.absent > 1 || stats.late > 2)
+    .slice(0, 5); // Show top 5 at-risk students
+
+  // Get students by batch for expanded view
+  const getStudentsByBatch = (batchCode: string) => {
+    return records
+      .filter(record => record.batch.batch_code === batchCode)
+      .reduce((acc, record) => {
+        const studentKey = `${record.student.first_name} ${record.student.last_name}`;
+        if (!acc[studentKey]) {
+          acc[studentKey] = {
+            student: record.student,
+            attendanceRecords: [],
+            stats: { present: 0, absent: 0, late: 0, total: 0 }
+          };
+        }
+        acc[studentKey].attendanceRecords.push(record);
+        acc[studentKey].stats[record.status as keyof typeof acc[typeof studentKey]['stats']]++;
+        acc[studentKey].stats.total++;
+        return acc;
+      }, {} as Record<string, {
+        student: AttendanceRecord['student'];
+        attendanceRecords: AttendanceRecord[];
+        stats: { present: number; absent: number; late: number; total: number };
+      }>);
   };
 
-  const formatClassDay = (dayOfWeek: string) => {
-    const dayMap: { [key: string]: string } = {
-      "1": "Sunday",
-      "3": "Tuesday",
-      "5": "Thursday",
-    };
-    return dayMap[dayOfWeek] || dayOfWeek;
-  };
-
-  const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    });
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "short",
-      day: "numeric",
-    });
-  };
-
-  if (records.length === 0) {
+  if (totalRecords === 0) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Recent Attendance Records</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5" />
+            Attendance Analytics
+          </CardTitle>
           <CardDescription>
-            Latest attendance entries across all batches
+            Overall attendance insights and trends
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-12">
             <div className="text-lg text-gray-500">
-              No attendance records found
+              No attendance data available
             </div>
             <div className="text-sm text-gray-400 mt-2">
-              Mark attendance to see records here
+              Mark attendance to see analytics here
             </div>
           </div>
         </CardContent>
@@ -112,54 +145,196 @@ export function AttendanceList({ records }: AttendanceListProps) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Recent Attendance Records</CardTitle>
-        <CardDescription>
-          Latest attendance entries across all batches
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {records.map((record) => (
-            <div
-              key={record.id}
-              className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-            >
-              <div className="flex items-center gap-4">
-                <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-                  <span className="text-sm font-medium">
-                    {record.student.first_name[0]}
-                    {record.student.last_name[0]}
-                  </span>
-                </div>
-                <div>
-                  <p className="font-medium">
-                    {record.student.first_name} {record.student.last_name}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {record.student.student_id} • {record.batch.batch_code}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="text-right">
-                  <p className="text-sm font-medium">
-                    {formatDate(record.date)}, {formatTime(record.created_at)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {formatClassDay(record.day_of_week)} Class
-                  </p>
-                </div>
-                <Badge className={getStatusColor(record.status)}>
-                  {getStatusIcon(record.status)}
-                  <span className="ml-1 capitalize">{record.status}</span>
-                </Badge>
-              </div>
+    <div className="space-y-6">
+      {/* Overall Stats */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5" />
+            Attendance Overview
+          </CardTitle>
+          <CardDescription>
+            Overall attendance statistics across all batches
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600">{attendanceRate}%</div>
+              <div className="text-sm text-muted-foreground">Attendance Rate</div>
             </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+            <div className="text-center">
+              <div className="text-2xl font-bold">{totalRecords}</div>
+              <div className="text-sm text-muted-foreground">Total Records</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-yellow-600">{lateRate}%</div>
+              <div className="text-sm text-muted-foreground">Late Rate</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-red-600">{absentCount}</div>
+              <div className="text-sm text-muted-foreground">Total Absences</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Batch Breakdown */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Batch Performance
+          </CardTitle>
+          <CardDescription>
+            Click on any batch to see individual student details
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {Object.entries(batchStats).map(([batchCode, stats]) => {
+              const batchAttendanceRate = Math.round((stats.present / stats.total) * 100);
+              const isExpanded = expandedBatches.has(batchCode);
+              const batchStudents = getStudentsByBatch(batchCode);
+              
+              return (
+                <div key={batchCode} className="space-y-3">
+                  <div 
+                    className="space-y-2 p-3 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => toggleBatch(batchCode)}
+                  >
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        {isExpanded ? (
+                          <ChevronDown className="h-4 w-4" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4" />
+                        )}
+                        <span className="font-medium">{batchCode}</span>
+                      </div>
+                      <span className="text-sm text-muted-foreground">
+                        {stats.present}/{stats.total} ({batchAttendanceRate}%)
+                      </span>
+                    </div>
+                    <Progress value={batchAttendanceRate} className="h-2" />
+                    <div className="flex gap-4 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <CheckCircle className="h-3 w-3 text-green-600" />
+                        {stats.present} Present
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3 w-3 text-yellow-600" />
+                        {stats.late} Late
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <XCircle className="h-3 w-3 text-red-600" />
+                        {stats.absent} Absent
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Expanded Students View */}
+                  {isExpanded && (
+                    <div className="ml-6 space-y-2 border-l-2 border-muted pl-4">
+                      <h4 className="text-sm font-medium text-muted-foreground">
+                        Students in {batchCode}
+                      </h4>
+                      <div className="space-y-2">
+                        {Object.entries(batchStudents).map(([studentName, studentData]) => {
+                          const studentAttendanceRate = Math.round(
+                            (studentData.stats.present / studentData.stats.total) * 100
+                          );
+                          
+                          return (
+                            <div key={studentName} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                              <div className="flex items-center gap-3">
+                                <Avatar className="h-8 w-8">
+                                  <AvatarFallback className="text-xs">
+                                    {studentData.student.first_name[0]}
+                                    {studentData.student.last_name[0]}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <p className="font-medium text-sm">{studentName}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {studentData.student.student_id}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <div className="text-xs text-center">
+                                  <div className="font-medium">{studentAttendanceRate}%</div>
+                                  <div className="text-muted-foreground">Attendance</div>
+                                </div>
+                                <div className="flex gap-1">
+                                  {studentData.stats.present > 0 && (
+                                    <Badge variant="outline" className="text-green-600 border-green-200 text-xs">
+                                      {studentData.stats.present}P
+                                    </Badge>
+                                  )}
+                                  {studentData.stats.late > 0 && (
+                                    <Badge variant="outline" className="text-yellow-600 border-yellow-200 text-xs">
+                                      {studentData.stats.late}L
+                                    </Badge>
+                                  )}
+                                  {studentData.stats.absent > 0 && (
+                                    <Badge variant="outline" className="text-red-600 border-red-200 text-xs">
+                                      {studentData.stats.absent}A
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Students Needing Attention */}
+      {atRiskStudents.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-orange-500" />
+              Students Needing Attention
+            </CardTitle>
+            <CardDescription>
+              Students with concerning attendance patterns
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {atRiskStudents.map(([studentName, stats]) => (
+                <div key={studentName} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div>
+                    <p className="font-medium">{studentName}</p>
+                    <p className="text-sm text-muted-foreground">{stats.batch}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    {stats.absent > 1 && (
+                      <Badge variant="outline" className="text-red-600 border-red-200">
+                        {stats.absent} Absences
+                      </Badge>
+                    )}
+                    {stats.late > 2 && (
+                      <Badge variant="outline" className="text-yellow-600 border-yellow-200">
+                        {stats.late} Late
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 }

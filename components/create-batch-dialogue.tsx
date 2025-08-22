@@ -91,6 +91,8 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [startDateOpen, setStartDateOpen] = useState(false);
+  const [endDateOpen, setEndDateOpen] = useState(false);
 
   const router = useRouter();
 
@@ -102,7 +104,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
       start_date: new Date(),
       end_date: addMonths(new Date(), 3),
       status: "upcoming",
-      max_students: 30,
+      max_students: 10,
       module_1: "Intro to AI",
       module_2: "Vibe Coding + APIs",
       module_3: "AI Agents",
@@ -117,6 +119,14 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
       form.setValue("start_date", date);
       // Auto-set end date to 3 months later
       form.setValue("end_date", addMonths(date, 3));
+      setStartDateOpen(false); // Close the popover
+    }
+  };
+
+  const handleEndDateChange = (date: Date | undefined) => {
+    if (date) {
+      form.setValue("end_date", date);
+      setEndDateOpen(false); // Close the popover
     }
   };
 
@@ -257,7 +267,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
                       <FormLabel>Start Date *</FormLabel>
-                      <Popover>
+                      <Popover open={startDateOpen} onOpenChange={setStartDateOpen}>
                         <PopoverTrigger asChild>
                           <FormControl>
                             <Button
@@ -297,7 +307,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
                       <FormLabel>End Date *</FormLabel>
-                      <Popover>
+                      <Popover open={endDateOpen} onOpenChange={setEndDateOpen}>
                         <PopoverTrigger asChild>
                           <FormControl>
                             <Button
@@ -320,7 +330,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                           <Calendar
                             mode="single"
                             selected={field.value}
-                            onSelect={field.onChange}
+                            onSelect={handleEndDateChange}
                             disabled={(date) =>
                               date < startDate || date < new Date("1900-01-01")
                             }
@@ -385,18 +395,28 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                         <Input
                           type="number"
                           min="1"
-                          max="100"
-                          {...field}
-                          value={field.value || ""} // Show empty string instead of 0
+                          max="10"
+                          placeholder="Enter max students"
+                          value={field.value === undefined ? "" : field.value.toString()}
                           onChange={(e) => {
                             const value = e.target.value;
+                            
+                            // Allow empty string (user is clearing the field)
                             if (value === "") {
-                              field.onChange(undefined); // Set to undefined for empty
-                            } else {
-                              const numValue = parseInt(value);
-                              field.onChange(
-                                isNaN(numValue) ? undefined : numValue
-                              );
+                              field.onChange(undefined);
+                              return;
+                            }
+                            
+                            // Only allow numeric input
+                            if (!/^\d+$/.test(value)) {
+                              return; // Don't update if not a valid number
+                            }
+                            
+                            const numValue = parseInt(value, 10);
+                            
+                            // Enforce min/max constraints
+                            if (numValue >= 1 && numValue <= 10) {
+                              field.onChange(numValue);
                             }
                           }}
                         />

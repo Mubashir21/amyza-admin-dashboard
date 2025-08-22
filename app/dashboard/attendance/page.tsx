@@ -77,7 +77,7 @@
 import { ResponsiveContainer } from "@/components/responsive-container";
 import { AttendanceSearchClient } from "@/components/attendance/attendance-search";
 import { AttendanceStats } from "@/components/attendance/attendance-stats";
-import { AttendanceList } from "@/components/attendance/attendance-list";
+import { AttendanceAnalytics } from "@/components/attendance/attendance-list";
 import { BulkAttendanceMarker } from "@/components/attendance/bulk-attendance-marker";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -141,7 +141,7 @@ export default async function AttendancePage({ searchParams }: PageProps) {
             <AttendanceSearchClient batches={batches} />
 
             {/* Attendance Records */}
-            <AttendanceList records={attendance} />
+            <AttendanceAnalytics records={attendance} />
 
             {/* Pagination */}
             <div className="flex items-center justify-between">

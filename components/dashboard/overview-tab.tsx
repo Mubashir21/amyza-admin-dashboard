@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/card";
 import { BarChart3 } from "lucide-react";
 import { BatchOverview } from "./batch-overview";
-import { RecentActivity } from "./recent-activity";
+// import { RecentActivity } from "./recent-activity";
 import type { ActivityItem, BatchInfo } from "@/lib/dashboard-services";
 
 interface OverviewTabProps {
@@ -16,13 +16,13 @@ interface OverviewTabProps {
   batches: BatchInfo[];
 }
 
-export function OverviewTab({ activities, batches }: OverviewTabProps) {
+export function OverviewTab({ activities, batches}: OverviewTabProps) {
   return (
     <>
       {/* Main Chart and Activity Section */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+      <div className="grid gap-4">
         {/* Main Chart Area */}
-        <Card className="col-span-4">
+        <Card className="">
           <CardHeader>
             <CardTitle>Student Progress Analytics</CardTitle>
             <CardDescription>
@@ -43,7 +43,7 @@ export function OverviewTab({ activities, batches }: OverviewTabProps) {
         </Card>
 
         {/* Recent Activity */}
-        <RecentActivity activities={activities} />
+        {/* <RecentActivity activities={activities} /> */}
       </div>
 
       {/* Batch Performance Grid */}
