@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -22,9 +22,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { MoreVertical, Edit, Trash2, Mail, Phone } from "lucide-react";
+import { MoreVertical, Edit, Trash2, Mail, Phone, Eye } from "lucide-react";
 import { Student, deleteStudent } from "@/lib/students-services";
 import { EditStudentDialog } from "@/components/students/students-edit-dialog";
+import { StudentDetailsDialog } from "@/components/students/student-details-dialog";
+import { getRankingsFiltered } from "@/lib/rankings-services";
 
 interface StudentCardProps {
   student: Student;
@@ -34,7 +36,9 @@ interface StudentCardProps {
 export function StudentCard({ student, batches = [] }: StudentCardProps) {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [batchRank, setBatchRank] = useState<number | null>(null);
   const router = useRouter();
 
   const getInitials = (firstName: string, lastName: string) => {
@@ -86,6 +90,40 @@ export function StudentCard({ student, batches = [] }: StudentCardProps) {
   };
 
   const overallScore = calculateOverallScore();
+
+  // Fetch batch-specific ranking when component mounts
+  useEffect(() => {
+    if (student.batch_id) {
+      const fetchBatchRanking = async () => {
+        try {
+          let batchRankings = await getRankingsFiltered({
+            batch: student.batch_id,
+            batchStatus: "active"
+          });
+          
+          // If no results with active, try with all statuses
+          if (!batchRankings || batchRankings.length === 0) {
+            batchRankings = await getRankingsFiltered({
+              batch: student.batch_id,
+              batchStatus: "all"
+            });
+          }
+          
+          const studentRanking = batchRankings.find(r => r.id === student.id);
+          if (studentRanking) {
+            setBatchRank(studentRanking.rank);
+          } else {
+            setBatchRank(null);
+          }
+        } catch (error) {
+          console.error("Error fetching batch ranking:", error);
+          setBatchRank(null);
+        }
+      };
+
+      fetchBatchRanking();
+    }
+  }, [student.batch_id, student.id]);
 
   const handleEdit = () => {
     setShowEditDialog(true);
@@ -144,6 +182,10 @@ export function StudentCard({ student, batches = [] }: StudentCardProps) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setShowDetailsDialog(true)}>
+                  <Eye className="mr-2 h-4 w-4" />
+                  View Details
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleEdit}>
                   <Edit className="mr-2 h-4 w-4" />
                   Edit Student
@@ -165,14 +207,14 @@ export function StudentCard({ student, batches = [] }: StudentCardProps) {
           {/* Badges */}
           <div className="flex flex-wrap gap-2">
             <Badge
-              variant={getRankBadgeVariant(student.rank || 0)}
+              variant={getRankBadgeVariant(batchRank || 0)}
               className={
-                (student.rank || 0) <= 3
-                  ? getRankBadgeClass(student.rank || 0)
+                (batchRank || 0) <= 3
+                  ? getRankBadgeClass(batchRank || 0)
                   : ""
               }
             >
-              Rank #{student.rank || "N/A"}
+              Rank #{batchRank || "N/A"}
             </Badge>
             <Badge variant="outline">
               {student.batch?.batch_code || "No Batch"}
@@ -224,6 +266,13 @@ export function StudentCard({ student, batches = [] }: StudentCardProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Student Details Dialog */}
+      <StudentDetailsDialog
+        open={showDetailsDialog}
+        onOpenChange={setShowDetailsDialog}
+        student={student}
+      />
 
       {/* Edit Student Dialog */}
       <EditStudentDialog
