@@ -5,9 +5,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Calendar, Mail, Phone, MapPin, User, Award, TrendingUp, BookOpen, Eye } from "lucide-react";
+import { Calendar, Mail, Phone, User, BookOpen, Eye } from "lucide-react";
 import { Student } from "@/lib/students-services";
 import { getRankingsFiltered } from "@/lib/rankings-services";
 import { supabase } from "@/lib/supabase/client";
@@ -26,7 +25,7 @@ interface AttendanceRecord {
 }
 
 export function StudentDetailsDialog({ open, onOpenChange, student }: StudentDetailsDialogProps) {
-  const [notes, setNotes] = useState("");
+//   const [notes, setNotes] = useState("");
   const [batchRank, setBatchRank] = useState<number | null>(null);
   const [totalInBatch, setTotalInBatch] = useState<number | null>(null);
   const [recentAttendance, setRecentAttendance] = useState<AttendanceRecord[]>([]);
@@ -162,7 +161,7 @@ export function StudentDetailsDialog({ open, onOpenChange, student }: StudentDet
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): "default" | "secondary" | "destructive" | "outline" => {
     switch(status) {
       case 'present': return 'default';
       case 'late': return 'secondary';
@@ -352,7 +351,7 @@ export function StudentDetailsDialog({ open, onOpenChange, student }: StudentDet
                             ({getDayDisplayName(record.day_of_week)})
                           </span>
                         </div>
-                        <Badge variant={getStatusColor(record.status) as any} className="text-xs ml-2 flex-shrink-0">
+                        <Badge variant={getStatusColor(record.status)} className="text-xs ml-2 flex-shrink-0">
                           {getStatusDisplay(record.status)}
                         </Badge>
                       </div>
