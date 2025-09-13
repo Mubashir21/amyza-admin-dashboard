@@ -127,9 +127,18 @@ export function BulkAttendanceMarker({
     }
   }, [selectedBatch, selectedDate]); // Add both selectedBatch and selectedDate as dependencies
 
+  // Clear batch selection when non-class day is selected
+  useEffect(() => {
+    if (selectedDate && !isClassDay(selectedDate)) {
+      setSelectedBatch("");
+      setStudents([]);
+      setAttendance({});
+    }
+  }, [selectedDate]);
+
   // Load students and attendance when batch or date changes
   useEffect(() => {
-    if (selectedBatch) {
+    if (selectedBatch && selectedDate && isClassDay(selectedDate)) {
       loadStudentsAndAttendance();
     } else {
       setStudents([]);
@@ -162,11 +171,10 @@ export function BulkAttendanceMarker({
     }
 
     // Validate class day
-    const dayOfWeek =
-      selectedDate.getDay() === 0 ? 1 : selectedDate.getDay() + 1;
-    if (![1, 3, 5].includes(dayOfWeek)) {
+    const dayOfWeek = selectedDate.getDay() === 0 ? 1 : selectedDate.getDay() + 1;
+    if (![7, 2, 5].includes(dayOfWeek)) {
       toast.error(
-        "Attendance can only be marked for Sunday, Tuesday, and Thursday"
+        "Attendance can only be marked for Saturday, Monday, and Thursday"
       );
       return;
     }
@@ -248,13 +256,13 @@ export function BulkAttendanceMarker({
 
   const getDayName = (date: Date) => {
     const dayOfWeek = date.getDay() === 0 ? 1 : date.getDay() + 1;
-    const days = { 1: "Sunday", 3: "Tuesday", 5: "Thursday" };
+    const days = { 7: "Saturday", 2: "Monday", 5: "Thursday" };
     return days[dayOfWeek as keyof typeof days] || "Non-class day";
   };
 
   const isClassDay = (date: Date) => {
     const dayOfWeek = date.getDay() === 0 ? 1 : date.getDay() + 1;
-    return [1, 3, 5].includes(dayOfWeek);
+    return [7, 2, 5].includes(dayOfWeek);
   };
 
   const presentCount = Object.values(attendance).filter(
@@ -286,7 +294,11 @@ export function BulkAttendanceMarker({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-medium mb-2 block">Batch *</label>
-              <Select value={selectedBatch} onValueChange={setSelectedBatch}>
+              <Select 
+                value={selectedBatch} 
+                onValueChange={setSelectedBatch}
+                disabled={selectedDate && !isClassDay(selectedDate)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a batch" />
                 </SelectTrigger>
@@ -345,8 +357,8 @@ export function BulkAttendanceMarker({
               </Popover>
               {selectedDate && !isClassDay(selectedDate) && (
                 <p className="text-xs text-red-600 mt-1">
-                  ⚠️ This is not a class day. Classes are held on Sunday,
-                  Tuesday, and Thursday.
+                  ⚠️ This is not a class day. Classes are held on Saturday,
+                  Monday, and Thursday.
                 </p>
               )}
             </div>
@@ -485,7 +497,7 @@ export function BulkAttendanceMarker({
                   setStudents([]);
                   setSelectedBatch("");
                 }}
-                disabled={isSaving}
+                disabled={isSaving || (selectedDate && !isClassDay(selectedDate))}
               >
                 <RotateCcw className="mr-2 h-4 w-4" />
                 Reset
@@ -496,7 +508,8 @@ export function BulkAttendanceMarker({
                   isSaving ||
                   !selectedBatch ||
                   students.length === 0 ||
-                  unmarkedCount > 0
+                  unmarkedCount > 0 ||
+                  (selectedDate && !isClassDay(selectedDate))
                 }
               >
                 <Save className="mr-2 h-4 w-4" />

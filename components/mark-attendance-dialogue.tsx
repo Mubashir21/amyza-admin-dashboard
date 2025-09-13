@@ -106,13 +106,12 @@ export function MarkAttendanceDialog({
 
     try {
       // Calculate day of week (Sunday = 1, Monday = 2, etc.)
-      const dayOfWeek =
-        values.date.getDay() === 0 ? 1 : values.date.getDay() + 1;
+      const dayOfWeek = values.date.getDay() === 0 ? 1 : values.date.getDay() + 1;
 
-      // Validate it's a class day (Sunday=1, Tuesday=3, Thursday=5)
-      if (![1, 3, 5].includes(dayOfWeek)) {
+      // Validate it's a class day (Saturday=7, Monday=2, Thursday=5)
+      if (![7, 2, 5].includes(dayOfWeek)) {
         throw new Error(
-          "Attendance can only be marked for Sunday, Tuesday, and Thursday"
+          "Attendance can only be marked for Saturday, Monday, and Thursday"
         );
       }
 
@@ -174,14 +173,14 @@ export function MarkAttendanceDialog({
   // Helper function to get day name
   const getDayName = (date: Date) => {
     const dayOfWeek = date.getDay() === 0 ? 1 : date.getDay() + 1;
-    const days = { 1: "Sunday", 3: "Tuesday", 5: "Thursday" };
+    const days = { 7: "Saturday", 2: "Monday", 5: "Thursday" };
     return days[dayOfWeek as keyof typeof days] || "Non-class day";
   };
 
   // Helper function to check if date is a class day
   const isClassDay = (date: Date) => {
     const dayOfWeek = date.getDay() === 0 ? 1 : date.getDay() + 1;
-    return [1, 3, 5].includes(dayOfWeek);
+    return [7, 2, 5].includes(dayOfWeek);
   };
 
   return (
@@ -198,7 +197,7 @@ export function MarkAttendanceDialog({
           <DialogTitle>Mark Attendance</DialogTitle>
           <DialogDescription>
             Record student attendance for a specific date. Classes are held on
-            Sunday, Tuesday, and Thursday.
+            Saturday, Monday, and Thursday.
           </DialogDescription>
         </DialogHeader>
 
@@ -329,12 +328,12 @@ export function MarkAttendanceDialog({
                   </Popover>
                   {field.value && !isClassDay(field.value) && (
                     <p className="text-xs text-red-600">
-                      ⚠️ This is not a class day. Classes are held on Sunday,
-                      Tuesday, and Thursday.
+                      ⚠️ This is not a class day. Classes are held on Saturday,
+                      Monday, and Thursday.
                     </p>
                   )}
                   <FormDescription>
-                    Classes are held on Sunday, Tuesday, and Thursday only
+                    Classes are held on Saturday, Monday, and Thursday only
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

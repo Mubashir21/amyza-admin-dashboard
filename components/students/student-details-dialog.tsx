@@ -108,17 +108,30 @@ export function StudentDetailsDialog({ open, onOpenChange, student }: StudentDet
               console.log("Unique day_of_week values:", uniqueDays);
             }
             
-            // Filter for only class days (Sunday, Tuesday, Thursday) and limit to 5
+            // Filter for only class days (Saturday, Monday, Thursday) and limit to 5
             const classDayAttendance = (attendanceData || [])
               .filter(record => {
                 console.log("Processing record:", record);
-                if (!record.day_of_week) {
+                if (record.day_of_week === null || record.day_of_week === undefined) {
                   console.log("No day_of_week for record:", record.id);
                   return false;
                 }
-                const dayOfWeek = String(record.day_of_week).toLowerCase();
-                console.log("Day of week:", dayOfWeek);
-                const isClassDay = dayOfWeek === 'sunday' || dayOfWeek === 'tuesday' || dayOfWeek === 'thursday';
+                
+                // Handle both numeric and string day_of_week values
+                let dayOfWeek;
+                if (typeof record.day_of_week === 'number') {
+                  dayOfWeek = record.day_of_week;
+                } else {
+                  const dayStr = String(record.day_of_week).toLowerCase();
+                  // Convert string to number if needed
+                  if (dayStr === 'saturday' || dayStr === 'sat') dayOfWeek = 7;
+                  else if (dayStr === 'monday' || dayStr === 'mon') dayOfWeek = 2;
+                  else if (dayStr === 'thursday' || dayStr === 'thu') dayOfWeek = 5;
+                  else dayOfWeek = parseInt(record.day_of_week) || -1;
+                }
+                
+                console.log("Day of week (normalized):", dayOfWeek);
+                const isClassDay = [7, 2, 5].includes(dayOfWeek);
                 console.log("Is class day:", isClassDay);
                 return isClassDay;
               })
@@ -146,8 +159,24 @@ export function StudentDetailsDialog({ open, onOpenChange, student }: StudentDet
     }
   }, [open, student.batch_id, student.id]);
 
-  const getDayDisplayName = (dayOfWeek: string) => {
-    if (!dayOfWeek) return '';
+  const getDayDisplayName = (dayOfWeek: string | number) => {
+    if (dayOfWeek === null || dayOfWeek === undefined) return '';
+    
+    // Handle numeric day values (1=Sunday, 2=Monday, etc.)
+    if (typeof dayOfWeek === 'number') {
+      switch(dayOfWeek) {
+        case 1: return 'Sun';
+        case 2: return 'Mon';
+        case 3: return 'Tue';
+        case 4: return 'Wed';
+        case 5: return 'Thu';
+        case 6: return 'Fri';
+        case 7: return 'Sat';
+        default: return String(dayOfWeek);
+      }
+    }
+    
+    // Handle string day values
     const day = String(dayOfWeek).toLowerCase();
     switch(day) {
       case 'sunday': case 'sun': return 'Sun';
@@ -337,8 +366,13 @@ export function StudentDetailsDialog({ open, onOpenChange, student }: StudentDet
 
               <div className="bg-muted/50 p-3 sm:p-4 rounded-lg">
                 <h4 className="text-xs sm:text-sm font-medium mb-2 sm:mb-3">
-                  Recent Classes {recentAttendance.length > 0 && recentAttendance.some(r => ['sunday', 'tuesday', 'thursday'].includes(String(r.day_of_week).toLowerCase())) 
-                    ? "(Sun, Tue, Thu)" 
+                  Recent Classes {recentAttendance.length > 0 && recentAttendance.some(r => {
+                    if (typeof r.day_of_week === 'number') {
+                      return [7, 2, 5].includes(r.day_of_week);
+                    }
+                    return ['saturday', 'monday', 'thursday'].includes(String(r.day_of_week).toLowerCase());
+                  }) 
+                    ? "(Sat, Mon, Thu)" 
                     : "(All Days)"}
                 </h4>
                 <div className="space-y-1.5 sm:space-y-2">

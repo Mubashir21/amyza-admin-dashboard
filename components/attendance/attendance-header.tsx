@@ -24,7 +24,7 @@ export function AttendanceHeader({
   students,
   batches,
   title = "Attendance",
-  description = "Track student attendance for Sunday, Tuesday, and Thursday classes",
+  description = "Track student attendance for Saturday, Monday, and Thursday classes",
 }: AttendanceHeaderProps) {
   return (
     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">

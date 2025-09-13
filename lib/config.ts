@@ -16,7 +16,7 @@ export const AUTH_CONFIG = {
   //   // You can add other config here too
   //   APP_NAME: 'Student Portfolio System',
   //   MAX_STUDENTS_PER_BATCH: 30,
-  //   ATTENDANCE_DAYS: [1, 3, 5], // Sunday, Tuesday, Thursday
+  //   ATTENDANCE_DAYS: [7, 2, 5], // Saturday, Monday, Thursday
 };
 
 // Helper functions

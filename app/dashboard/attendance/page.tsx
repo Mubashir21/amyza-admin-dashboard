@@ -113,7 +113,7 @@ export default async function AttendancePage({ searchParams }: PageProps) {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Attendance</h1>
             <p className="text-muted-foreground">
-              Track student attendance for Sunday, Tuesday, and Thursday classes
+              Track student attendance for Saturday, Monday, and Thursday classes
             </p>
           </div>
         </div>
