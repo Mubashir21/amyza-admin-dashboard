@@ -133,7 +133,9 @@ export function MarkAttendanceDialog({
         .select();
 
       if (insertError) {
-        throw new Error(insertError.message);
+        console.error("Supabase insert error:", insertError);
+        console.error("Error details:", JSON.stringify(insertError, null, 2));
+        throw new Error(insertError.message || `Database error: ${insertError.code || 'Unknown error'}`);
       }
 
       console.log("Attendance marked successfully:", data);

@@ -172,9 +172,18 @@ export function BulkAttendanceMarker({
 
     // Validate class day
     const dayOfWeek = selectedDate.getDay() === 0 ? 1 : selectedDate.getDay() + 1;
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const currentDayName = dayNames[selectedDate.getDay()];
+    
+    console.log(`Selected date: ${selectedDate.toDateString()}`);
+    console.log(`Day of week (JS): ${selectedDate.getDay()}`);
+    console.log(`Day of week (calculated): ${dayOfWeek}`);
+    console.log(`Current day name: ${currentDayName}`);
+    console.log(`Valid days: [7=Saturday, 2=Monday, 5=Thursday]`);
+    
     if (![7, 2, 5].includes(dayOfWeek)) {
       toast.error(
-        "Attendance can only be marked for Saturday, Monday, and Thursday"
+        `Attendance can only be marked for Saturday, Monday, and Thursday. You selected ${currentDayName}.`
       );
       return;
     }
@@ -200,6 +209,10 @@ export function BulkAttendanceMarker({
         notes: null,
       }));
 
+      console.log("About to save attendance records:", attendanceRecords);
+      console.log("Selected batch:", selectedBatch);
+      console.log("Selected date:", formattedDate);
+
       // Use upsert to handle both new and existing attendance records
       const { error } = await supabase
         .from("attendance")
@@ -220,8 +233,17 @@ export function BulkAttendanceMarker({
       setSelectedBatch("");
     } catch (error: unknown) {
       console.error("Error saving attendance:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "Failed to save attendance";
+      console.error("Error details:", JSON.stringify(error, null, 2));
+      
+      let errorMessage = "Failed to save attendance";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'object' && error !== null) {
+        // Handle Supabase errors that might not be Error instances
+        const supabaseError = error as { message?: string; code?: string; details?: string };
+        errorMessage = supabaseError.message || supabaseError.details || `Database error: ${supabaseError.code || 'Unknown error'}`;
+      }
+      
       toast.error(errorMessage);
     } finally {
       setIsSaving(false);
