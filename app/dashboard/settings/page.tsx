@@ -15,13 +15,18 @@ export default function SettingsPage() {
   const { user, userRole, loading } = useAuth();
   const [activeTab, setActiveTab] = useState("profile");
   
+  // Debug logging
+  console.log('Settings Page - Auth State:', { user: !!user, userRole, loading });
+  
   // Show loading state while auth is initializing
   if (loading) {
+    console.log('Settings Page - Still loading auth...');
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="flex flex-col items-center gap-2">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
           <p className="text-sm text-muted-foreground">Loading settings...</p>
+          <p className="text-xs text-muted-foreground mt-2">If this takes too long, check the console</p>
         </div>
       </div>
     );
@@ -29,6 +34,7 @@ export default function SettingsPage() {
   
   // Don't render if no user after loading completes
   if (!user) {
+    console.log('Settings Page - No user found');
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
@@ -37,6 +43,8 @@ export default function SettingsPage() {
       </div>
     );
   }
+  
+  console.log('Settings Page - Rendering with user:', user.email);
 
   // Check if user is super admin
   const isSuperAdmin = userRole === "super_admin";
@@ -190,7 +198,9 @@ export default function SettingsPage() {
         {/* Roles Tab (Super Admin Only) */}
         {isSuperAdmin && (
           <TabsContent value="roles" className="space-y-6">
-            <RolesManagement />
+            {activeTab === "roles" ? (
+              <RolesManagement />
+            ) : null}
           </TabsContent>
         )}
         </Tabs>
