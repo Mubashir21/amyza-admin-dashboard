@@ -100,11 +100,20 @@ export function LoginForm({
     setShowResendButton(false);
 
     try {
-      await signIn(values.email, values.password);
-      // Don't set loading to false here - keep spinning until navigation completes
+      const result = await signIn(values.email, values.password);
+      console.log('Sign in successful:', result);
+      
+      // Wait a brief moment for auth state to update
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Navigate to dashboard
       router.push("/dashboard");
+      
+      // Keep loading state true until navigation completes
+      // The useEffect will handle stopping the loader once we leave /login
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : String(err);
+      console.error('Login error:', errorMessage);
 
       if (errorMessage.includes("Email not confirmed")) {
         setError("Please confirm your email address before signing in.");
