@@ -306,6 +306,21 @@ export function StudentDetailsDialog({ open, onOpenChange, student }: StudentDet
             </div>
           </div>
 
+          {/* Notes Section */}
+          {student.notes && (
+            <>
+              <Separator />
+              <div className="space-y-3 sm:space-y-4">
+                <h3 className="text-base sm:text-lg font-medium">Notes</h3>
+                <div className="bg-muted/50 p-3 sm:p-4 rounded-lg">
+                  <p className="text-xs sm:text-sm text-foreground whitespace-pre-wrap">
+                    {student.notes}
+                  </p>
+                </div>
+              </div>
+            </>
+          )}
+
           <Separator />
 
           {/* Performance Metrics */}

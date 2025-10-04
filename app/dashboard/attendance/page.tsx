@@ -105,6 +105,18 @@ export default async function AttendancePage({ searchParams }: PageProps) {
     getBatchesForAttendance(),
   ]);
 
+  // Transform attendance records for export functionality
+  const transformedAttendance = attendance.map((record) => ({
+    id: record.id,
+    student_id: record.student.student_id,
+    student_name: `${record.student.first_name} ${record.student.last_name}`,
+    batch_code: record.batch.batch_code,
+    date: record.date,
+    status: record.status,
+    day_of_week: record.day_of_week,
+    created_at: record.created_at,
+  }));
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -138,7 +150,7 @@ export default async function AttendancePage({ searchParams }: PageProps) {
 
           <TabsContent value="records" className="space-y-6">
             {/* Search/Filter Bar */}
-            <AttendanceSearchClient batches={batches} />
+            <AttendanceSearchClient batches={batches} attendanceRecords={transformedAttendance} />
 
             {/* Attendance Records */}
             <AttendanceAnalytics records={attendance} />

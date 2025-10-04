@@ -3,6 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/lib/auth-context";
+import { canManageStudents } from "@/lib/roles";
+import { PermissionButton } from "@/components/ui/permission-button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -65,6 +68,8 @@ export function BatchActions({
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const { userRole } = useAuth();
+  const canManage = canManageStudents(userRole);
 
   const handleAdvanceModule = async () => {
     if (currentModule >= 3) return;
@@ -126,7 +131,9 @@ export function BatchActions({
       <div className="flex gap-2 w-full">
         {/* Quick Action Buttons */}
         {status === "upcoming" && (
-          <Button
+          <PermissionButton
+            hasPermission={canManageStudents(userRole)}
+            permissionMessage="Only Admins can start batches"
             onClick={handleActivateBatch}
             disabled={isLoading}
             size="sm"
@@ -134,11 +141,13 @@ export function BatchActions({
           >
             <Play className="w-4 h-4 mr-2" />
             Start Batch
-          </Button>
+          </PermissionButton>
         )}
 
         {status === "active" && currentModule < 3 && (
-          <Button
+          <PermissionButton
+            hasPermission={canManageStudents(userRole)}
+            permissionMessage="Only Admins can advance modules"
             onClick={handleAdvanceModule}
             disabled={isLoading}
             size="sm"
@@ -147,11 +156,13 @@ export function BatchActions({
           >
             <SkipForward className="w-4 h-4 mr-2" />
             Next Module
-          </Button>
+          </PermissionButton>
         )}
 
         {status === "active" && (
-          <Button
+          <PermissionButton
+            hasPermission={canManageStudents(userRole)}
+            permissionMessage="Only Admins can complete batches"
             onClick={() => setShowCompleteDialog(true)}
             disabled={isLoading}
             size="sm"
@@ -160,7 +171,7 @@ export function BatchActions({
           >
             <CheckCircle className="w-4 h-4 mr-2" />
             Complete
-          </Button>
+          </PermissionButton>
         )}
 
         {/* More Actions Dropdown */}
@@ -178,7 +189,12 @@ export function BatchActions({
               View Details
             </DropdownMenuItem>
 
-            <DropdownMenuItem onClick={() => setIsEditDialogOpen(true)}>
+            <DropdownMenuItem 
+              onClick={() => canManage && setIsEditDialogOpen(true)}
+              disabled={!canManage}
+              className={!canManage ? "opacity-50 cursor-not-allowed" : ""}
+              title={!canManage ? "Only Admins can edit batches" : ""}
+            >
               <Edit className="mr-2 h-4 w-4" />
               Edit Batch
             </DropdownMenuItem>
@@ -186,15 +202,22 @@ export function BatchActions({
             <DropdownMenuSeparator />
 
             {status === "completed" && (
-              <DropdownMenuItem onClick={handleActivateBatch}>
+              <DropdownMenuItem 
+                onClick={() => canManage && handleActivateBatch()}
+                disabled={!canManage}
+                className={!canManage ? "opacity-50 cursor-not-allowed" : ""}
+                title={!canManage ? "Only Admins can reactivate batches" : ""}
+              >
                 <Play className="mr-2 h-4 w-4" />
                 Reactivate Batch
               </DropdownMenuItem>
             )}
 
             <DropdownMenuItem
-              onClick={() => setShowDeleteDialog(true)}
-              className="text-red-600"
+              onClick={() => canManage && setShowDeleteDialog(true)}
+              disabled={!canManage}
+              className={`text-red-600 ${!canManage ? "opacity-50 cursor-not-allowed" : ""}`}
+              title={!canManage ? "Only Admins can delete batches" : ""}
             >
               <Trash2 className="mr-2 h-4 w-4" />
               Delete Batch

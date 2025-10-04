@@ -1,4 +1,9 @@
+"use client";
+
 import { UpdatePerformanceDialog } from "@/components/rankings/update-performance-dialog";
+import { useAuth } from "@/lib/auth-context";
+import { canManageStudents } from "@/lib/roles";
+import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 
 interface Student {
   id: string;
@@ -28,17 +33,24 @@ export function RankingsHeader({
   batches,
   onPerformanceUpdated,
 }: RankingsHeaderProps) {
+  const { userRole } = useAuth();
+
   return (
     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
         <p className="text-muted-foreground">{description}</p>
       </div>
-      <UpdatePerformanceDialog
-        students={students}
-        batches={batches}
-        onPerformanceUpdated={onPerformanceUpdated}
-      />
+      <PermissionWrapper
+        hasPermission={canManageStudents(userRole)}
+        permissionMessage="Only Admins can update student performance"
+      >
+        <UpdatePerformanceDialog
+          students={students}
+          batches={batches}
+          onPerformanceUpdated={onPerformanceUpdated}
+        />
+      </PermissionWrapper>
     </div>
   );
 }

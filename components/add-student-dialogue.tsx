@@ -31,6 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Plus, Upload, X } from "lucide-react";
 import {
@@ -58,6 +59,7 @@ const formSchema = z.object({
   batch_id: z.string().min(1, {
     message: "Please select a batch.",
   }),
+  notes: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -170,6 +172,7 @@ export function AddStudentDialog({ batches = [] }: AddStudentDialogProps) {
         phone: values.phone || undefined,
         gender: values.gender,
         batch_id: values.batch_id,
+        notes: values.notes || undefined,
         profile_picture: profileImage,
       };
 
@@ -401,6 +404,25 @@ export function AddStudentDialog({ batches = [] }: AddStudentDialogProps) {
                       ))}
                     </SelectContent>
                   </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Notes (Optional)</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Add any additional notes about the student..."
+                      className="resize-none"
+                      rows={3}
+                      {...field}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

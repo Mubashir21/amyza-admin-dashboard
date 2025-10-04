@@ -16,7 +16,7 @@ interface OverviewTabProps {
   batches: BatchInfo[];
 }
 
-export function OverviewTab({ activities, batches}: OverviewTabProps) {
+export function OverviewTab({ batches }: OverviewTabProps) {
   return (
     <>
       {/* Main Chart and Activity Section */}

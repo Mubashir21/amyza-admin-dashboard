@@ -30,6 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Upload, X, User } from "lucide-react";
 import {
@@ -59,6 +60,7 @@ const formSchema = z.object({
   batch_id: z.string().min(1, {
     message: "Please select a batch.",
   }),
+  notes: z.string().optional(),
   is_active: z.boolean(),
 });
 
@@ -102,6 +104,7 @@ export function EditStudentDialog({
         phone: student.phone || "",
         gender: student.gender as "male" | "female",
         batch_id: student.batch_id || "",
+        notes: student.notes || "",
         is_active: student.is_active ?? true,
       });
 
@@ -189,6 +192,7 @@ export function EditStudentDialog({
         phone: values.phone || null,
         gender: values.gender,
         batch_id: values.batch_id,
+        notes: values.notes || null,
         is_active: values.is_active,
       };
 
@@ -411,6 +415,25 @@ export function EditStudentDialog({
                 />
               </div>
             </div>
+
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Notes (Optional)</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Add any additional notes about the student..."
+                      className="resize-none"
+                      rows={3}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             {/* Student Summary */}
             <div className="bg-muted/50 p-4 rounded-lg">

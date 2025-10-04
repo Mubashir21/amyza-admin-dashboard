@@ -10,7 +10,7 @@ import {
   getPerformanceCategories,
   getBatchesForRankings,
 } from "@/lib/rankings-services";
-import { getStudentsForAttendance } from "@/lib/attendance-services";
+import { getStudentsWithMetrics } from "@/lib/students-services";
 
 interface PageProps {
   searchParams: Promise<{
@@ -29,7 +29,7 @@ export default async function RankingsPage({ searchParams }: PageProps) {
     getRankingsStats(resolvedSearchParams),
     getPerformanceCategories(resolvedSearchParams),
     getBatchesForRankings(batchStatus),
-    getStudentsForAttendance(),
+    getStudentsWithMetrics({}),
   ]);
 
   return (
@@ -44,6 +44,7 @@ export default async function RankingsPage({ searchParams }: PageProps) {
         <RankingsSearchClient
           batches={batches}
           currentBatchStatus={batchStatus}
+          students={students}
         />
       </ResponsiveContainer>
 

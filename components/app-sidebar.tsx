@@ -10,9 +10,12 @@ import {
   // Settings,
   UserCheck,
   Trophy,
+  BookOpen,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/lib/auth-context";
+import { canManageTeachers } from "@/lib/roles";
 
 import {
   Sidebar,
@@ -53,6 +56,11 @@ const navData = {
           url: "/dashboard/batches",
           icon: Users,
         },
+        {
+          title: "Teachers",
+          url: "/dashboard/teachers",
+          icon: BookOpen,
+        },
       ],
     },
     {
@@ -85,6 +93,7 @@ const navData = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
+  const { userRole } = useAuth();
 
   return (
     <Sidebar {...props}>
@@ -114,14 +123,29 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               {group.items.map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname === item.url;
+                const isTeachersItem = item.title === "Teachers";
+                const canAccessTeachers = canManageTeachers(userRole);
+                const isDisabled = isTeachersItem && !canAccessTeachers;
 
                 return (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild isActive={isActive}>
-                      <Link href={item.url}>
-                        <Icon className="size-4" />
-                        {item.title}
-                      </Link>
+                    <SidebarMenuButton 
+                      asChild={!isDisabled} 
+                      isActive={isActive}
+                      className={isDisabled ? "opacity-50 cursor-not-allowed" : ""}
+                      disabled={isDisabled}
+                    >
+                      {isDisabled ? (
+                        <div className="flex items-center gap-2">
+                          <Icon className="size-4" />
+                          {item.title}
+                        </div>
+                      ) : (
+                        <Link href={item.url}>
+                          <Icon className="size-4" />
+                          {item.title}
+                        </Link>
+                      )}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );

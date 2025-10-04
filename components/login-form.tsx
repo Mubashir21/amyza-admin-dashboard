@@ -5,7 +5,8 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { GalleryVerticalEnd } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { GalleryVerticalEnd, Loader2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -43,6 +44,14 @@ export function LoginForm({
   const [resendEmail, setResendEmail] = useState<string>("");
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
+
+  // Stop loading when we navigate away from login page
+  useEffect(() => {
+    if (pathname !== '/login' && isLoading) {
+      setIsLoading(false);
+    }
+  }, [pathname, isLoading]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -92,6 +101,7 @@ export function LoginForm({
 
     try {
       await signIn(values.email, values.password);
+      // Don't set loading to false here - keep spinning until navigation completes
       router.push("/dashboard");
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : String(err);
@@ -107,7 +117,8 @@ export function LoginForm({
       } else {
         setError(errorMessage || "An error occurred during login");
       }
-    } finally {
+      
+      // Only stop loading on error
       setIsLoading(false);
     }
   }
@@ -192,7 +203,8 @@ export function LoginForm({
           />
 
           <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? "Signing in..." : "Sign In"}
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isLoading ? "Logging in..." : "Login"}
           </Button>
         </form>
       </Form>

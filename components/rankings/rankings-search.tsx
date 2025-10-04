@@ -12,7 +12,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Filter, Download, Calendar } from "lucide-react";
+import { Search, Filter, Download } from "lucide-react";
+import { exportRankings } from "@/lib/export-services";
+import { Student } from "@/lib/students-services";
 
 interface Batch {
   id: string;
@@ -23,15 +25,18 @@ interface Batch {
 interface RankingsSearchClientProps {
   batches: Batch[];
   currentBatchStatus: "all" | "active" | "completed";
+  students?: Student[];
 }
 
 export function RankingsSearchClient({
   batches,
   currentBatchStatus,
+  students = [],
 }: RankingsSearchClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [search, setSearch] = useState(searchParams.get("search") ?? "");
+  const [batchStatusFilter, setBatchStatusFilter] = useState(currentBatchStatus);
 
   // Update URL when search changes
   useEffect(() => {
@@ -44,12 +49,17 @@ export function RankingsSearchClient({
     router.push(`?${params.toString()}`);
   }, [search, searchParams, router]);
 
-  const handleBatchStatusFilter = (status: string) => {
+  const handleBatchStatusToggle = () => {
+    const statuses = ["all", "active", "completed"];
+    const currentIndex = statuses.indexOf(batchStatusFilter);
+    const nextStatus = statuses[(currentIndex + 1) % statuses.length] as "all" | "active" | "completed";
+    setBatchStatusFilter(nextStatus);
+    
     const params = new URLSearchParams(searchParams);
-    if (status === "all") {
+    if (nextStatus === "all") {
       params.delete("batchStatus");
     } else {
-      params.set("batchStatus", status);
+      params.set("batchStatus", nextStatus);
     }
     // Clear specific batch filter when changing status
     params.delete("batch");
@@ -67,13 +77,38 @@ export function RankingsSearchClient({
   };
 
   const handleExport = () => {
-    console.log("Export rankings");
-    // Implement export functionality
+    if (!students || students.length === 0) {
+      alert('No rankings data available to export');
+      return;
+    }
+    
+    // Filter students based on current search criteria
+    let filteredStudents = students;
+    
+    // Apply search filter
+    if (search) {
+      const searchLower = search.toLowerCase();
+      filteredStudents = filteredStudents.filter(student => 
+        student.first_name.toLowerCase().includes(searchLower) ||
+        student.last_name.toLowerCase().includes(searchLower) ||
+        student.student_id.toLowerCase().includes(searchLower) ||
+        (student.batch?.batch_code && student.batch.batch_code.toLowerCase().includes(searchLower))
+      );
+    }
+    
+    // Apply batch filter
+    const selectedBatch = searchParams.get("batch");
+    if (selectedBatch && selectedBatch !== "all") {
+      filteredStudents = filteredStudents.filter(student => student.batch_id === selectedBatch);
+    }
+    
+    exportRankings(filteredStudents);
   };
 
   return (
-    <Card>
-      <CardContent >
+    <div className="space-y-4">
+      <Card>
+        <CardContent>
         <div className="flex flex-col gap-4 md:flex-row md:items-center">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -87,20 +122,11 @@ export function RankingsSearchClient({
 
           <div className="flex gap-2">
             {/* Batch Status Filter */}
-            <Select
-              onValueChange={handleBatchStatusFilter}
-              value={currentBatchStatus}
-            >
-              <SelectTrigger className="w-[160px]">
-                <Calendar className="mr-2 h-4 w-4" />
-                <SelectValue placeholder="Batch Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="active">Active Only</SelectItem>
-                <SelectItem value="completed">Completed Only</SelectItem>
-              </SelectContent>
-            </Select>
+            <Button variant="outline" onClick={handleBatchStatusToggle}>
+              {batchStatusFilter === "all"
+                ? "All"
+                : `Status: ${batchStatusFilter}`}
+            </Button>
 
             {/* Specific Batch Filter */}
             <Select
@@ -130,7 +156,38 @@ export function RankingsSearchClient({
             </Button>
           </div>
         </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+
+    {/* Active Filters Display */}
+    <div className="flex items-center gap-2 text-sm text-gray-600">
+      <span>Active filters:</span>
+      {currentBatchStatus !== "all" && (
+        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">
+          Batch Status: {currentBatchStatus}
+        </span>
+      )}
+      {searchParams.get("batch") && searchParams.get("batch") !== "all" && (
+        <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded">
+          Batch: {batches.find(b => b.id === searchParams.get("batch"))?.batch_code || searchParams.get("batch")}
+        </span>
+      )}
+      {search && (
+        <span className="px-2 py-1 bg-green-100 text-green-800 rounded">
+          Search: &quot;{search}&quot;
+        </span>
+      )}
+      <button
+        onClick={() => {
+          setSearch("");
+          setBatchStatusFilter("all");
+          router.push("/dashboard/rankings");
+        }}
+        className="text-blue-600 hover:underline"
+      >
+        Clear all
+      </button>
+    </div>
+  </div>
   );
 }

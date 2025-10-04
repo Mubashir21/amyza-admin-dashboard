@@ -22,9 +22,15 @@ interface PageProps {
 
 export default async function StudentsPage({ searchParams }: PageProps) {
   const resolvedSearchParams = await searchParams;
+  
+  // Default to 'active' status if no status is provided
+  const filtersWithDefaults = {
+    ...resolvedSearchParams,
+    status: resolvedSearchParams.status || 'all'
+  };
 
   const [students, stats, batches] = await Promise.all([
-    getStudentsFiltered(resolvedSearchParams),
+    getStudentsFiltered(filtersWithDefaults),
     getStudentsStats(),
     getAllBatches(),
   ]);
@@ -38,7 +44,7 @@ export default async function StudentsPage({ searchParams }: PageProps) {
 
       {/* Search/Filter Bar */}
       <ResponsiveContainer>
-        <StudentsSearchClient batches={batches} />
+        <StudentsSearchClient batches={batches} students={students} />
       </ResponsiveContainer>
 
       {/* Students Stats */}

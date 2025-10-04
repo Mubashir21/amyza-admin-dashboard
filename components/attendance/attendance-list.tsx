@@ -25,7 +25,7 @@ interface AttendanceRecord {
   id: string;
   student_id: string;
   batch_id: string;
-  status: "present" | "absent" | "late" | "excused";
+  status: "present" | "absent" | "late";
   date: string;
   day_of_week: string;
   notes?: string;
@@ -91,7 +91,7 @@ export function AttendanceAnalytics({ records }: AttendanceListProps) {
   }, {} as Record<string, { total: number; absent: number; late: number; batch: string }>);
 
   const atRiskStudents = Object.entries(studentAttendance)
-    .filter(([_, stats]) => stats.absent > 1 || stats.late > 2)
+    .filter(([, stats]) => stats.absent > 1 || stats.late > 2)
     .slice(0, 5); // Show top 5 at-risk students
 
   // Get students by batch for expanded view

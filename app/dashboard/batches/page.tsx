@@ -93,7 +93,7 @@ export default async function BatchesPage({ searchParams }: PageProps) {
 
       {/* Search/Filter Bar */}
       <ResponsiveContainer>
-        <BatchesSearchClient />
+        <BatchesSearchClient batches={batches} />
       </ResponsiveContainer>
 
       {/* Batch Stats */}
