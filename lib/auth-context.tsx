@@ -33,29 +33,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Get initial session and profile
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    const initAuth = async () => {
       try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error('Session error:', sessionError);
+          setUser(null);
+          setAdminProfile(null);
+          setUserRole(null);
+          setLoading(false);
+          return;
+        }
+
         const currentUser = session?.user ?? null;
         setUser(currentUser);
         
         if (currentUser) {
           console.log('Getting user profile for:', currentUser.email);
           
-          // Temporary fallback - assume super_admin role to get you logged in
           try {
             const profile = await getCurrentUserProfile(currentUser);
             console.log('User profile:', profile);
-            setAdminProfile(profile);
-            setUserRole(profile?.role ?? 'super_admin'); // Fallback to super_admin
-          } catch {
-            console.error('Profile fetch failed, using fallback role');
+            
+            if (profile) {
+              setAdminProfile(profile);
+              setUserRole(profile.role);
+            } else {
+              // No profile found - create fallback
+              console.warn('No profile found for user, using fallback');
+              const fallbackProfile: AdminProfile = {
+                id: 'temp',
+                user_id: currentUser.id,
+                email: currentUser.email || '',
+                first_name: currentUser.user_metadata?.first_name || 'User',
+                last_name: currentUser.user_metadata?.last_name || 'Name',
+                role: 'super_admin' as UserRole,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              };
+              setAdminProfile(fallbackProfile);
+              setUserRole('super_admin');
+            }
+          } catch (error) {
+            console.error('Profile fetch failed:', error);
             // Create a temporary profile with super_admin role
-            const fallbackProfile = {
+            const fallbackProfile: AdminProfile = {
               id: 'temp',
               user_id: currentUser.id,
               email: currentUser.email || '',
-              first_name: 'User',
-              last_name: 'Name',
+              first_name: currentUser.user_metadata?.first_name || 'User',
+              last_name: currentUser.user_metadata?.last_name || 'Name',
               role: 'super_admin' as UserRole,
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
@@ -68,21 +96,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUserRole(null);
         }
       } catch (error) {
-        console.error('Error in auth context:', error);
+        console.error('Error initializing auth:', error);
+        setUser(null);
         setAdminProfile(null);
         setUserRole(null);
       } finally {
         setLoading(false);
       }
-    }).catch(error => {
-      console.error('Error getting session:', error);
-      setLoading(false);
-    });
+    };
+
+    initAuth();
 
     // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state change event:', event);
+      
       try {
         const currentUser = session?.user ?? null;
         setUser(currentUser);
@@ -93,16 +123,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           try {
             const profile = await getCurrentUserProfile(currentUser);
             console.log('Auth state change - profile:', profile);
-            setAdminProfile(profile);
-            setUserRole(profile?.role ?? 'super_admin'); // Fallback to super_admin
-          } catch {
-            console.error('Auth state change - profile fetch failed, using fallback role');
-            const fallbackProfile = {
+            
+            if (profile) {
+              setAdminProfile(profile);
+              setUserRole(profile.role);
+            } else {
+              console.warn('Auth state change - no profile found, using fallback');
+              const fallbackProfile: AdminProfile = {
+                id: 'temp',
+                user_id: currentUser.id,
+                email: currentUser.email || '',
+                first_name: currentUser.user_metadata?.first_name || 'User',
+                last_name: currentUser.user_metadata?.last_name || 'Name',
+                role: 'super_admin' as UserRole,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              };
+              setAdminProfile(fallbackProfile);
+              setUserRole('super_admin');
+            }
+          } catch (error) {
+            console.error('Auth state change - profile fetch error:', error);
+            const fallbackProfile: AdminProfile = {
               id: 'temp',
               user_id: currentUser.id,
               email: currentUser.email || '',
-              first_name: 'User',
-              last_name: 'Name',
+              first_name: currentUser.user_metadata?.first_name || 'User',
+              last_name: currentUser.user_metadata?.last_name || 'Name',
               role: 'super_admin' as UserRole,
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
@@ -116,10 +163,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (error) {
         console.error('Error in auth state change:', error);
+        setUser(null);
         setAdminProfile(null);
         setUserRole(null);
-      } finally {
-        setLoading(false);
       }
 
       // Only redirect on sign out, not sign in

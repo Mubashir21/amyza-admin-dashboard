@@ -12,11 +12,31 @@ import { RolesManagement } from "@/components/settings/roles-management";
 import { ResponsiveContainer } from "@/components/responsive-container";
 
 export default function SettingsPage() {
-  const { user, userRole } = useAuth();
+  const { user, userRole, loading } = useAuth();
   const [activeTab, setActiveTab] = useState("profile");
   
-  // Don't render if no user
-  if (!user) return null;
+  // Show loading state while auth is initializing
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="flex flex-col items-center gap-2">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          <p className="text-sm text-muted-foreground">Loading settings...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // Don't render if no user after loading completes
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <p className="text-muted-foreground">No user found. Please log in.</p>
+        </div>
+      </div>
+    );
+  }
 
   // Check if user is super admin
   const isSuperAdmin = userRole === "super_admin";
