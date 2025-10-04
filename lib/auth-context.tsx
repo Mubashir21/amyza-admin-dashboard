@@ -47,7 +47,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.log('User profile:', profile);
             setAdminProfile(profile);
             setUserRole(profile?.role ?? 'super_admin'); // Fallback to super_admin
-          } catch (error) {
+          } catch {
             console.error('Profile fetch failed, using fallback role');
             // Create a temporary profile with super_admin role
             const fallbackProfile = {
@@ -95,7 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.log('Auth state change - profile:', profile);
             setAdminProfile(profile);
             setUserRole(profile?.role ?? 'super_admin'); // Fallback to super_admin
-          } catch (error) {
+          } catch {
             console.error('Auth state change - profile fetch failed, using fallback role');
             const fallbackProfile = {
               id: 'temp',

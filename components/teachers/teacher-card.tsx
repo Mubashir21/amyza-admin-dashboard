@@ -54,14 +54,6 @@ export function TeacherCard({ teacher, onTeacherUpdated }: TeacherCardProps) {
     return `${first}${last}`.toUpperCase() || 'N/A';
   };
 
-  const getStatusVariant = (isActive: boolean) => {
-    return isActive ? "default" : "secondary";
-  };
-
-  const getStatusText = (isActive: boolean) => {
-    return isActive ? "Active" : "Inactive";
-  };
-
   const getDepartmentBadgeClass = () => {
     // Keep all department badges neutral
     return "bg-gray-200 text-gray-800 border-gray-300 hover:bg-gray-300";

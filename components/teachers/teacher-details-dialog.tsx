@@ -11,7 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { Mail, Phone, Calendar, UserCheck, Briefcase, FileText, Eye, Users } from "lucide-react";
+import { Mail, Phone, Calendar, Briefcase, FileText, Eye, Users } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { Teacher } from "@/lib/teachers-services";
 

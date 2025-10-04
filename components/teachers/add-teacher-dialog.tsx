@@ -183,7 +183,7 @@ export function AddTeacherDialog({ onTeacherAdded }: AddTeacherDialogProps) {
           
           // Try to upload image directly
           console.log("Attempting to upload image...");
-          const { data: uploadData, error: uploadError } = await supabase.storage
+          const { error: uploadError } = await supabase.storage
             .from('teacher-profile')
             .upload(fileName, profileImage, {
               cacheControl: '3600',

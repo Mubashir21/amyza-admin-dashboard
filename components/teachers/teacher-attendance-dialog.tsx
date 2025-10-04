@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -34,13 +34,7 @@ export function TeacherAttendanceDialog({
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    if (open && teacher) {
-      loadAttendance();
-    }
-  }, [open, teacher]);
-
-  const loadAttendance = async () => {
+  const loadAttendance = useCallback(async () => {
     setIsLoading(true);
     try {
       const records = await getTeacherAttendance({ teacher_id: teacher.id });
@@ -50,7 +44,13 @@ export function TeacherAttendanceDialog({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [teacher.id]);
+
+  useEffect(() => {
+    if (open && teacher) {
+      loadAttendance();
+    }
+  }, [open, teacher, loadAttendance]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {

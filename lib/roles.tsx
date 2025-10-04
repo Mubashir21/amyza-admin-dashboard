@@ -3,8 +3,6 @@ import React from "react";
 import { supabase } from "@/lib/supabase/client";
 import { User } from "@supabase/supabase-js";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 export type UserRole = 'super_admin' | 'admin' | 'viewer';
 
 export interface AdminProfile {

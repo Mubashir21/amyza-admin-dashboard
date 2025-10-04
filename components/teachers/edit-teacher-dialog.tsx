@@ -10,7 +10,6 @@ import {
   removeTeacherProfilePicture,
   Teacher,
 } from "@/lib/teachers-services";
-import { supabase } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 

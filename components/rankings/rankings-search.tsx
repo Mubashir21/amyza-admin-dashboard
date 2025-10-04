@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Filter, Download, Calendar } from "lucide-react";
+import { Search, Filter, Download } from "lucide-react";
 import { exportRankings } from "@/lib/export-services";
 import { Student } from "@/lib/students-services";
 
