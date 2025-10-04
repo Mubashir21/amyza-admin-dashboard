@@ -25,7 +25,7 @@ interface AttendanceRecord {
   id: string;
   student_id: string;
   batch_id: string;
-  status: "present" | "absent" | "late" | "excused";
+  status: "present" | "absent" | "late";
   date: string;
   day_of_week: string;
   notes?: string;

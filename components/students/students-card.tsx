@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAuth } from "@/lib/auth-context";
+import { canManageStudents } from "@/lib/roles";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,6 +42,8 @@ export function StudentCard({ student, batches = [] }: StudentCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [batchRank, setBatchRank] = useState<number | null>(null);
   const router = useRouter();
+  const { userRole } = useAuth();
+  const canManage = canManageStudents(userRole);
 
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
@@ -186,14 +190,21 @@ export function StudentCard({ student, batches = [] }: StudentCardProps) {
                   <Eye className="mr-2 h-4 w-4" />
                   View Details
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleEdit}>
+                <DropdownMenuItem 
+                  onClick={handleEdit}
+                  disabled={!canManage}
+                  className={!canManage ? "opacity-50 cursor-not-allowed" : ""}
+                  title={!canManage ? "Only Admins can edit students" : ""}
+                >
                   <Edit className="mr-2 h-4 w-4" />
                   Edit Student
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  className="text-destructive"
-                  onClick={() => setShowDeleteDialog(true)}
+                  className={`text-destructive ${!canManage ? "opacity-50 cursor-not-allowed" : ""}`}
+                  onClick={() => canManage && setShowDeleteDialog(true)}
+                  disabled={!canManage}
+                  title={!canManage ? "Only Admins can delete students" : ""}
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
                   Remove Student

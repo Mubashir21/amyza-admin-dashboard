@@ -104,6 +104,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       { label: "Dashboard", href: "/dashboard" },
       { label: "Settings" },
     ],
+    "/dashboard/teachers": [
+      { label: "Dashboard", href: "/dashboard" },
+      { label: "Teachers" },
+    ],
     "/dashboard/profile": [
       { label: "Dashboard", href: "/dashboard" },
       { label: "Profile" },

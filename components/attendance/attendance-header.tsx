@@ -1,4 +1,9 @@
+"use client";
+
 import { MarkAttendanceDialog } from "@/components/mark-attendance-dialogue";
+import { useAuth } from "@/lib/auth-context";
+import { canMarkStudentAttendance } from "@/lib/roles";
+import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 
 interface Student {
   id: string;
@@ -26,13 +31,20 @@ export function AttendanceHeader({
   title = "Attendance",
   description = "Track student attendance for Saturday, Monday, and Thursday classes",
 }: AttendanceHeaderProps) {
+  const { userRole } = useAuth();
+
   return (
     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
         <p className="text-muted-foreground">{description}</p>
       </div>
-      <MarkAttendanceDialog students={students} batches={batches} />
+      <PermissionWrapper
+        hasPermission={canMarkStudentAttendance(userRole)}
+        permissionMessage="Only Admins can mark student attendance"
+      >
+        <MarkAttendanceDialog students={students} batches={batches} />
+      </PermissionWrapper>
     </div>
   );
 }

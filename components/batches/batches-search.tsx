@@ -6,22 +6,38 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
+import { exportBatches } from "@/lib/export-services";
 
-export function BatchesSearchClient() {
+interface BatchesSearchClientProps {
+  batches?: Array<{
+    id: string;
+    batch_code: string;
+    start_date?: string;
+    end_date?: string;
+    status: string;
+    current_module?: number;
+    total_modules?: number;
+    student_count?: number;
+    created_at: string;
+    updated_at: string;
+  }>;
+}
+
+export function BatchesSearchClient({ batches = [] }: BatchesSearchClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState(
     searchParams.get("search") || ""
   );
   const [statusFilter, setStatusFilter] = useState(
-    searchParams.get("status") || "all"
+    searchParams.get("status") || "active"
   );
 
   // Update URL when filters change
   const updateURL = (search: string, status: string) => {
     const params = new URLSearchParams();
     if (search) params.set("search", search);
-    if (status !== "all") params.set("status", status);
+    if (status !== "active") params.set("status", status);
 
     const newURL = params.toString() ? `?${params.toString()}` : "";
     router.push(`/dashboard/batches${newURL}`);
@@ -44,13 +60,33 @@ export function BatchesSearchClient() {
   };
 
   const handleExport = () => {
-    console.log("Export clicked - implement CSV export here");
-    // Implement CSV export logic
+    if (!batches || batches.length === 0) {
+      alert('No batches data available to export');
+      return;
+    }
+    
+    // Filter batches based on current search criteria
+    let filteredBatches = batches;
+    
+    // Apply search filter
+    if (searchQuery) {
+      const searchLower = searchQuery.toLowerCase();
+      filteredBatches = filteredBatches.filter(batch => 
+        batch.batch_code.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    // Apply status filter
+    if (statusFilter && statusFilter !== "all") {
+      filteredBatches = filteredBatches.filter(batch => batch.status === statusFilter);
+    }
+    
+    exportBatches(filteredBatches);
   };
 
   const clearFilters = () => {
     setSearchQuery("");
-    setStatusFilter("all");
+    setStatusFilter("active");
     router.push("/dashboard/batches");
   };
 

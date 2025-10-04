@@ -18,6 +18,7 @@ export interface Student {
   communication: number;
   technical_skills: number;
   general_performance: number;
+  notes?: string;
   created_at: string;
   updated_at: string;
   batch?: {
@@ -45,6 +46,7 @@ export interface CreateStudentData {
   gender: string;
   batch_id: string;
   profile_picture?: File | null;
+  notes?: string;
 }
 
 // Generate unique student ID
@@ -240,6 +242,7 @@ export async function createStudent(data: CreateStudentData): Promise<Student> {
       gender: data.gender,
       batch_id: data.batch_id,
       profile_picture: profilePictureUrl,
+      notes: data.notes || null,
       is_active: true,
     };
 
@@ -579,6 +582,7 @@ export interface UpdateStudentData {
   phone?: string | null;
   gender?: string;
   batch_id?: string;
+  notes?: string | null;
   is_active?: boolean;
   updated_at?: string;
 }

@@ -413,7 +413,7 @@ export function UpdatePerformanceDialog({
                                 <Slider
                                   min={0}
                                   max={10}
-                                  step={0.1}
+                                  step={0.5}
                                   value={[
                                     typeof field.value === "number"
                                       ? field.value

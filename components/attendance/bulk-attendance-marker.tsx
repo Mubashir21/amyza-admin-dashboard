@@ -39,6 +39,8 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth-context";
+import { canMarkStudentAttendance } from "@/lib/roles";
 
 interface Student {
   id: string;
@@ -66,6 +68,7 @@ export function BulkAttendanceMarker({
   batches,
   onAttendanceMarked,
 }: BulkAttendanceMarkerProps) {
+  const { userRole } = useAuth();
   const [selectedBatch, setSelectedBatch] = useState<string>("");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [students, setStudents] = useState<Student[]>([]);
@@ -74,6 +77,9 @@ export function BulkAttendanceMarker({
   const [isSaving, setIsSaving] = useState(false);
 
   const router = useRouter();
+
+  // Check if user has permission to mark attendance
+  const canMarkAttendance = canMarkStudentAttendance(userRole);
 
   // Load students and existing attendance when batch and date are selected
   const loadStudentsAndAttendance = useCallback(async () => {
@@ -221,7 +227,21 @@ export function BulkAttendanceMarker({
           ignoreDuplicates: false
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Bulk attendance error:", error);
+        console.error("Error details:", JSON.stringify(error, null, 2));
+        
+        // Check for specific error codes
+        if (error.code === '23514') {
+          throw new Error(`Database constraint violation: One or more status values are not allowed. Only 'present', 'absent', and 'late' are valid.`);
+        } else if (error.code === '23503') {
+          throw new Error("Invalid student or batch ID provided.");
+        } else if (error.code === '23505') {
+          throw new Error("Attendance for one or more students on this date already exists.");
+        }
+        
+        throw error;
+      }
 
       toast.success(`Attendance saved for ${students.length} students`);
       router.refresh();
@@ -298,6 +318,32 @@ export function BulkAttendanceMarker({
   ).length;
   const unmarkedCount =
     students.length - (presentCount + absentCount + lateCount);
+
+  // Show permission denied message for viewers
+  if (!canMarkAttendance) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Bulk Attendance Marking
+            </CardTitle>
+            <CardDescription>
+              You do not have permission to mark student attendance
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-8">
+              <div className="text-muted-foreground">
+                Only Super Admins and Admins can mark student attendance.
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

@@ -43,6 +43,8 @@ import {
 import { CalendarIcon, UserCheck } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth-context";
+import { canMarkStudentAttendance } from "@/lib/roles";
 
 const formSchema = z.object({
   student_id: z.string().min(1, { message: "Please select a student." }),
@@ -76,11 +78,15 @@ export function MarkAttendanceDialog({
   batches = [],
   onAttendanceMarked,
 }: MarkAttendanceDialogProps) {
+  const { userRole } = useAuth();
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const router = useRouter();
+
+  // Check if user has permission to mark attendance
+  const canMarkAttendance = canMarkStudentAttendance(userRole);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -135,6 +141,16 @@ export function MarkAttendanceDialog({
       if (insertError) {
         console.error("Supabase insert error:", insertError);
         console.error("Error details:", JSON.stringify(insertError, null, 2));
+        
+        // Check for specific error codes
+        if (insertError.code === '23514') {
+          throw new Error(`Database constraint violation: The status '${values.status}' is not allowed. Only 'present', 'absent', and 'late' are valid.`);
+        } else if (insertError.code === '23503') {
+          throw new Error("Invalid student or batch ID provided.");
+        } else if (insertError.code === '23505') {
+          throw new Error("Attendance for this student on this date already exists.");
+        }
+        
         throw new Error(insertError.message || `Database error: ${insertError.code || 'Unknown error'}`);
       }
 
@@ -188,7 +204,7 @@ export function MarkAttendanceDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
+        <Button disabled={!canMarkAttendance}>
           <UserCheck className="mr-2 h-4 w-4" />
           Mark Attendance
         </Button>
@@ -407,7 +423,7 @@ export function MarkAttendanceDialog({
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isLoading}>
+              <Button type="submit" disabled={isLoading || !canMarkAttendance}>
                 {isLoading ? "Marking..." : "Mark Attendance"}
               </Button>
             </div>

@@ -60,6 +60,9 @@ export async function getRankingsFiltered(
       query = query.eq("batches.status", "active");
     } else if (filters.batchStatus === "completed") {
       query = query.eq("batches.status", "completed");
+    } else if (filters.batchStatus === "all") {
+      // Show all batches including upcoming
+      query = query.in("batches.status", ["active", "completed", "upcoming"]);
     } else {
       // Default: exclude upcoming batches at SQL level
       query = query.in("batches.status", ["active", "completed"]);
@@ -86,8 +89,11 @@ export async function getRankingsFiltered(
     } else if (filters.batchStatus === "completed") {
       // For completed batches, show ALL students (regardless of is_active)
       // Because completed batch students are automatically set to inactive
+    } else if (filters.batchStatus === "all") {
+      // For "all" - show all students regardless of batch status or is_active
+      // This gives the most comprehensive view
     } else {
-      // For "all" - show active students from active batches + all students from completed batches
+      // For default - show active students from active batches + all students from completed batches
       students = students.filter(
         (s) =>
           (s.batch?.status === "active" && s.is_active === true) ||
@@ -193,8 +199,19 @@ export async function getRankingsStats(
         .select("id")
         .eq("status", "completed");
       completedBatchesCount = completedBatches?.length || 0;
+    } else if (filters.batchStatus === "all") {
+      // For "all", get all batch counts including upcoming
+      const [activeBatches, completedBatches, upcomingBatches] = await Promise.all([
+        supabase.from("batches").select("id").eq("status", "active"),
+        supabase.from("batches").select("id").eq("status", "completed"),
+        supabase.from("batches").select("id").eq("status", "upcoming"),
+      ]);
+      activeBatchesCount = activeBatches.data?.length || 0;
+      completedBatchesCount = completedBatches.data?.length || 0;
+      // Include upcoming batches in the active count for stats
+      activeBatchesCount += upcomingBatches.data?.length || 0;
     } else {
-      // For "all", get both counts
+      // For default, get both counts
       const [activeBatches, completedBatches] = await Promise.all([
         supabase.from("batches").select("id").eq("status", "active"),
         supabase.from("batches").select("id").eq("status", "completed"),

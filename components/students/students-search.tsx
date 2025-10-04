@@ -13,6 +13,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Search, Filter, Download } from "lucide-react";
+import { exportStudents } from "@/lib/export-services";
+import { Student } from "@/lib/students-services";
 
 interface Batch {
   id: string;
@@ -21,12 +23,14 @@ interface Batch {
 
 interface StudentsSearchClientProps {
   batches: Batch[];
+  students?: Student[];
 }
 
-export function StudentsSearchClient({ batches }: StudentsSearchClientProps) {
+export function StudentsSearchClient({ batches, students = [] }: StudentsSearchClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [search, setSearch] = useState(searchParams.get("search") ?? "");
+  const [statusFilter, setStatusFilter] = useState(searchParams.get("status") ?? "all");
 
   // Update URL when search changes
   useEffect(() => {
@@ -49,24 +53,61 @@ export function StudentsSearchClient({ batches }: StudentsSearchClientProps) {
     router.push(`?${params.toString()}`);
   };
 
-  const handleStatusFilter = (status: string) => {
+  const handleStatusToggle = () => {
+    const statuses = ["all", "active", "inactive"];
+    const currentIndex = statuses.indexOf(statusFilter);
+    const nextStatus = statuses[(currentIndex + 1) % statuses.length];
+    setStatusFilter(nextStatus);
+    
     const params = new URLSearchParams(searchParams);
-    if (status === "all") {
+    if (nextStatus === "all") {
       params.delete("status");
     } else {
-      params.set("status", status);
+      params.set("status", nextStatus);
     }
     router.push(`?${params.toString()}`);
   };
 
   const handleExport = () => {
-    console.log("Export students");
-    // Implement export functionality
+    if (!students || students.length === 0) {
+      alert('No students data available to export');
+      return;
+    }
+    
+    // Filter students based on current search criteria
+    let filteredStudents = students;
+    
+    // Apply search filter
+    if (search) {
+      const searchLower = search.toLowerCase();
+      filteredStudents = filteredStudents.filter(student => 
+        student.first_name.toLowerCase().includes(searchLower) ||
+        student.last_name.toLowerCase().includes(searchLower) ||
+        student.student_id.toLowerCase().includes(searchLower) ||
+        (student.email && student.email.toLowerCase().includes(searchLower))
+      );
+    }
+    
+    // Apply batch filter
+    const selectedBatch = searchParams.get("batch");
+    if (selectedBatch && selectedBatch !== "all") {
+      filteredStudents = filteredStudents.filter(student => student.batch_id === selectedBatch);
+    }
+    
+    // Apply status filter
+    const selectedStatus = searchParams.get("status");
+    if (selectedStatus && selectedStatus !== "all") {
+      const isActive = selectedStatus === "active";
+      filteredStudents = filteredStudents.filter(student => student.is_active === isActive);
+    }
+    
+    exportStudents(filteredStudents);
   };
 
   return (
-    <Card>
-      <CardContent>
+    <div className="space-y-4">
+      <Card>
+        <CardContent>
         <div className="flex flex-col gap-4 md:flex-row md:items-center">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -96,19 +137,11 @@ export function StudentsSearchClient({ batches }: StudentsSearchClientProps) {
               </SelectContent>
             </Select>
 
-            <Select
-              onValueChange={handleStatusFilter}
-              defaultValue={searchParams.get("status") ?? "all"}
-            >
-              <SelectTrigger className="w-[120px]">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
+            <Button variant="outline" onClick={handleStatusToggle}>
+              {statusFilter === "all"
+                ? "All"
+                : `Status: ${statusFilter}`}
+            </Button>
 
             <Button variant="outline" onClick={handleExport}>
               <Download className="mr-2 h-4 w-4" />
@@ -116,7 +149,38 @@ export function StudentsSearchClient({ batches }: StudentsSearchClientProps) {
             </Button>
           </div>
         </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+
+    {/* Active Filters Display */}
+    <div className="flex items-center gap-2 text-sm text-gray-600">
+      <span>Active filters:</span>
+      {searchParams.get("batch") && searchParams.get("batch") !== "all" && (
+        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">
+          Batch: {batches.find(b => b.id === searchParams.get("batch"))?.batch_code || searchParams.get("batch")}
+        </span>
+      )}
+      {searchParams.get("status") && searchParams.get("status") !== "all" && (
+        <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded">
+          Status: {searchParams.get("status")}
+        </span>
+      )}
+      {search && (
+        <span className="px-2 py-1 bg-green-100 text-green-800 rounded">
+          Search: &quot;{search}&quot;
+        </span>
+      )}
+      <button
+        onClick={() => {
+          setSearch("");
+          setStatusFilter("all");
+          router.push("/dashboard/students");
+        }}
+        className="text-blue-600 hover:underline"
+      >
+        Clear all
+      </button>
+    </div>
+  </div>
   );
 }
