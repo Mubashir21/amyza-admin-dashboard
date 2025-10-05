@@ -1,6 +1,7 @@
 "use client";
 
-import { Settings, ChevronsUpDown, LogOut } from "lucide-react";
+import { Settings, ChevronsUpDown, LogOut, Loader2 } from "lucide-react";
+import { useState } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -23,6 +24,7 @@ import { useAuth } from "@/lib/auth-context";
 export function NavUser() {
   const { isMobile } = useSidebar();
   const { user, signOut } = useAuth();
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   // Don't render if no user
   if (!user) return null;
@@ -41,9 +43,11 @@ export function NavUser() {
 
   const handleSignOut = async () => {
     try {
+      setIsSigningOut(true);
       await signOut();
     } catch (error) {
       console.error("Error signing out:", error);
+      setIsSigningOut(false);
     }
   };
 
@@ -106,9 +110,22 @@ export function NavUser() {
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleSignOut}>
-              <LogOut />
-              Log out
+            <DropdownMenuItem 
+              onClick={handleSignOut}
+              disabled={isSigningOut}
+              className="cursor-pointer"
+            >
+              {isSigningOut ? (
+                <>
+                  <Loader2 className="animate-spin" />
+                  Signing out...
+                </>
+              ) : (
+                <>
+                  <LogOut />
+                  Log out
+                </>
+              )}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
