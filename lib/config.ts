@@ -1,28 +1,22 @@
 // ===== lib/config.ts =====
 // Single source of truth for all configuration
 
+/**
+ * Authentication Configuration
+ * Note: With the invitation system, these authorized emails are no longer strictly enforced
+ * All users now go through the invitation flow with role-based access
+ */
 export const AUTH_CONFIG = {
-  // Authorized emails for the student portfolio system
-  AUTHORIZED_EMAILS: [
-    "mubashirshoukat@gmail.com",
-    "muzaffarrocks06@gmail.com",
-    "mohammedshoukat@gmail.com",
-    "mkloon12@gmail.com",
-    "naannmo0@gmail.com",
-    "Odaibinomar@gmail.com",
-    "Ahmedalgunid259@gmail.com",
-    "Riyadhalgunidwork@gmail.com",
-  ],
+  // Legacy: List of emails that were allowed before invitation system
+  // Now handled by invitations table with role-based access (admin/viewer)
+  AUTHORIZED_EMAILS: [] as readonly string[],
+} as const;
 
-  //   // You can add other config here too
-  //   APP_NAME: 'Student Portfolio System',
-  //   MAX_STUDENTS_PER_BATCH: 30,
-  //   ATTENDANCE_DAYS: [7, 2, 5], // Saturday, Monday, Thursday
-};
-
-// Helper functions
-export const isAuthorizedEmail = (email: string): boolean => {
-  return AUTH_CONFIG.AUTHORIZED_EMAILS.includes(email.toLowerCase());
+// Helper functions (legacy - kept for backwards compatibility)
+export const isAuthorizedEmail = (_email: string): boolean => {
+  // With invitation system, authorization is handled by invitations table
+  // This function is kept for backwards compatibility but always returns true
+  return true;
 };
 
 export const getAuthorizedEmails = (): readonly string[] => {

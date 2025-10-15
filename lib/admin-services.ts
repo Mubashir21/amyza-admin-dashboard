@@ -1,120 +1,96 @@
-import { supabase } from "@/lib/supabase/client";
+/**
+ * Admin Services
+ * Handles admin user management operations
+ */
+
+import { supabase } from "./supabase/client";
 
 export interface AdminUser {
   id: string;
   user_id: string;
+  email: string;
   first_name: string;
   last_name: string;
   role: 'super_admin' | 'admin' | 'viewer';
   created_at: string;
   updated_at: string;
-  email: string;
 }
 
 /**
- * Get all admin users
+ * Get all admin users from the admins table
  */
 export async function getAllAdminUsers(): Promise<AdminUser[]> {
   try {
     const { data, error } = await supabase
-      .from("admins")
-      .select("*")
-      .order("created_at", { ascending: false });
+      .from('admins')
+      .select('*')
+      .order('created_at', { ascending: false });
 
     if (error) {
-      console.error("Error fetching admin users:", error);
-      throw error;
+      console.error('Error fetching admin users:', error);
+      throw new Error(`Failed to fetch admin users: ${error.message}`);
     }
 
     return data || [];
   } catch (error) {
-    console.error("Failed to fetch admin users:", error);
+    console.error('Failed to get admin users:', error);
     throw error;
   }
 }
 
 /**
- * Update user role
+ * Update a user's role
  */
-export async function updateUserRole(userId: string, newRole: 'admin' | 'viewer'): Promise<void> {
+export async function updateUserRole(
+  userId: string,
+  newRole: 'admin' | 'viewer'
+): Promise<void> {
   try {
-    console.log("Updating user role:", { userId, newRole });
-
     const { error } = await supabase
-      .from("admins")
+      .from('admins')
       .update({ 
         role: newRole,
         updated_at: new Date().toISOString()
       })
-      .eq("user_id", userId);
+      .eq('user_id', userId);
 
     if (error) {
-      console.error("Supabase error updating role:", error);
-      throw error;
+      console.error('Error updating user role:', error);
+      throw new Error(`Failed to update user role: ${error.message}`);
     }
-
-    console.log("User role updated successfully");
   } catch (error) {
-    console.error("Error updating user role:", error);
+    console.error('Failed to update role:', error);
     throw error;
   }
 }
 
 /**
- * Delete admin user (removes from both admins table and auth)
+ * Delete an admin user
+ * 
+ * Uses the cascade delete trigger from sql/03_cascade_delete_trigger.sql
+ * When we delete from admins table, the trigger automatically deletes from auth.users
+ * 
+ * Prerequisites:
+ * - Run sql/03_cascade_delete_trigger.sql in your Supabase SQL Editor
+ * - The trigger has SECURITY DEFINER so it can delete from auth.users
  */
 export async function deleteAdminUser(userId: string): Promise<void> {
   try {
-    console.log("Deleting admin user:", userId);
-
-    // First, delete from admins table
-    const { error: adminDeleteError } = await supabase
-      .from("admins")
+    // Delete from admins table
+    // The cascade trigger will automatically delete from auth.users
+    const { error } = await supabase
+      .from('admins')
       .delete()
-      .eq("user_id", userId);
+      .eq('user_id', userId);
 
-    if (adminDeleteError) {
-      console.error("Error deleting from admins table:", adminDeleteError);
-      throw adminDeleteError;
+    if (error) {
+      console.error('Error deleting admin user:', error);
+      throw new Error(`Failed to delete admin user: ${error.message}`);
     }
 
-    // Then, delete from auth table (this requires admin privileges)
-    const { error: authDeleteError } = await supabase.auth.admin.deleteUser(userId);
-
-    if (authDeleteError) {
-      console.error("Error deleting from auth:", authDeleteError);
-      // If auth deletion fails, we should restore the admin record
-      // But for now, we'll just log the error and continue
-      console.warn("Auth deletion failed, but admin record was removed");
-    }
-
-    console.log("Admin user deleted successfully");
+    console.log('User deleted successfully (cascade trigger will handle auth.users deletion)');
   } catch (error) {
-    console.error("Error deleting admin user:", error);
-    throw error;
-  }
-}
-
-/**
- * Get admin user statistics
- */
-export async function getAdminUserStats(): Promise<{
-  totalUsers: number;
-  superAdmins: number;
-  admins: number;
-  viewers: number;
-}> {
-  try {
-    const users = await getAllAdminUsers();
-    
-    return {
-      totalUsers: users.length,
-      superAdmins: users.filter(u => u.role === 'super_admin').length,
-      admins: users.filter(u => u.role === 'admin').length,
-      viewers: users.filter(u => u.role === 'viewer').length,
-    };
-  } catch (error) {
-    console.error("Error getting admin stats:", error);
+    console.error('Failed to delete admin user:', error);
     throw error;
   }
 }

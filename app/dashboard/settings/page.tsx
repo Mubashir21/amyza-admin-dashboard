@@ -7,8 +7,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { User, Shield } from "lucide-react";
+import { User, Shield, Mail } from "lucide-react";
 import { RolesManagement } from "@/components/settings/roles-management";
+import { InviteManagement } from "@/components/settings/invite-management";
 import { ResponsiveContainer } from "@/components/responsive-container";
 
 export default function SettingsPage() {
@@ -98,10 +99,16 @@ export default function SettingsPage() {
             Profile
           </TabsTrigger>
           {isSuperAdmin && (
-            <TabsTrigger value="roles" className="flex items-center gap-2">
-              <Shield className="h-4 w-4" />
-              Roles
-            </TabsTrigger>
+            <>
+              <TabsTrigger value="invites" className="flex items-center gap-2">
+                <Mail className="h-4 w-4" />
+                Invites
+              </TabsTrigger>
+              <TabsTrigger value="roles" className="flex items-center gap-2">
+                <Shield className="h-4 w-4" />
+                Roles
+              </TabsTrigger>
+            </>
           )}
         </TabsList>
 
@@ -194,6 +201,15 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Invites Tab (Super Admin Only) */}
+        {isSuperAdmin && (
+          <TabsContent value="invites" className="space-y-6">
+            {activeTab === "invites" ? (
+              <InviteManagement />
+            ) : null}
+          </TabsContent>
+        )}
 
         {/* Roles Tab (Super Admin Only) */}
         {isSuperAdmin && (

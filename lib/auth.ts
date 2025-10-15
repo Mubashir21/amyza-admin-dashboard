@@ -1,15 +1,26 @@
 import { supabase } from "./supabase/client";
-import { isAuthorizedEmail } from "./config";
+import { validateInvitationToken, markInvitationAsUsed } from "./invite-services";
 
 export async function signUp(
   email: string,
   password: string,
   firstName: string,
-  lastName: string
+  lastName: string,
+  inviteToken?: string
 ) {
-  // Check if email is authorized (client-side validation)
-  if (!isAuthorizedEmail(email)) {
-    throw new Error("Only authorized staff can register");
+  // Validate invitation token
+  if (!inviteToken) {
+    throw new Error("You need a valid invitation to sign up. Please contact your administrator.");
+  }
+
+  const invitation = await validateInvitationToken(inviteToken);
+  
+  if (!invitation) {
+    throw new Error("Invalid or expired invitation. Please contact your administrator.");
+  }
+
+  if (invitation.email.toLowerCase() !== email.toLowerCase()) {
+    throw new Error("This invitation was sent to a different email address.");
   }
 
   // Sign up with Supabase Auth - the trigger will create admin profile automatically
@@ -20,11 +31,22 @@ export async function signUp(
       data: {
         first_name: firstName,
         last_name: lastName,
+        invited_role: invitation.role, // Store intended role in user metadata
       },
     },
   });
 
   if (error) throw error;
+
+  // Mark invitation as used
+  if (data.user) {
+    try {
+      await markInvitationAsUsed(invitation.id, data.user.id);
+    } catch (inviteError) {
+      console.error("Error marking invitation as used:", inviteError);
+      // Don't fail signup if we can't mark invitation as used
+    }
+  }
 
   return data;
 }

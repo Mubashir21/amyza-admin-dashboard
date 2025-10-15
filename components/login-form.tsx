@@ -142,11 +142,8 @@ export function LoginForm({
           <span className="sr-only">Student Portfolio System</span>
         </a>
         <h1 className="text-xl font-bold">Student Portfolio System</h1>
-        <div className="text-center text-sm">
-          Don&apos;t have an account?{" "}
-          <a href="/signup" className="underline underline-offset-4">
-            Sign up
-          </a>
+        <div className="text-center text-xs text-muted-foreground">
+          Don&apos;t have an account? Ask your administrator for an invitation.
         </div>
       </div>
 
