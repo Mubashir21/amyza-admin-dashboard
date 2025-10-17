@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Filter, Download } from "lucide-react";
+import { Search, Filter, Download, Loader2 } from "lucide-react";
 import { exportStudents } from "@/lib/export-services";
 import { Student } from "@/lib/students-services";
 
@@ -29,8 +29,9 @@ interface StudentsSearchClientProps {
 export function StudentsSearchClient({ batches, students = [] }: StudentsSearchClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
   const [search, setSearch] = useState(searchParams.get("search") ?? "");
-  const [statusFilter, setStatusFilter] = useState(searchParams.get("status") ?? "all");
+  const [statusFilter, setStatusFilter] = useState(searchParams.get("status") ?? "active");
 
   // Update URL when search changes
   useEffect(() => {
@@ -44,13 +45,15 @@ export function StudentsSearchClient({ batches, students = [] }: StudentsSearchC
   }, [search, searchParams, router]);
 
   const handleBatchFilter = (batchId: string) => {
-    const params = new URLSearchParams(searchParams);
-    if (batchId === "all") {
-      params.delete("batch");
-    } else {
-      params.set("batch", batchId);
-    }
-    router.push(`?${params.toString()}`);
+    startTransition(() => {
+      const params = new URLSearchParams(searchParams);
+      if (batchId === "all") {
+        params.delete("batch");
+      } else {
+        params.set("batch", batchId);
+      }
+      router.push(`?${params.toString()}`);
+    });
   };
 
   const handleStatusToggle = () => {
@@ -59,13 +62,15 @@ export function StudentsSearchClient({ batches, students = [] }: StudentsSearchC
     const nextStatus = statuses[(currentIndex + 1) % statuses.length];
     setStatusFilter(nextStatus);
     
-    const params = new URLSearchParams(searchParams);
-    if (nextStatus === "all") {
-      params.delete("status");
-    } else {
-      params.set("status", nextStatus);
-    }
-    router.push(`?${params.toString()}`);
+    startTransition(() => {
+      const params = new URLSearchParams(searchParams);
+      if (nextStatus === "all") {
+        params.delete("status");
+      } else {
+        params.set("status", nextStatus);
+      }
+      router.push(`?${params.toString()}`);
+    });
   };
 
   const handleExport = () => {
@@ -122,9 +127,14 @@ export function StudentsSearchClient({ batches, students = [] }: StudentsSearchC
             <Select
               onValueChange={handleBatchFilter}
               defaultValue={searchParams.get("batch") ?? "all"}
+              disabled={isPending}
             >
               <SelectTrigger className="w-[140px]">
-                <Filter className="mr-2 h-4 w-4" />
+                {isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Filter className="mr-2 h-4 w-4" />
+                )}
                 <SelectValue placeholder="Batch" />
               </SelectTrigger>
               <SelectContent>
@@ -137,13 +147,16 @@ export function StudentsSearchClient({ batches, students = [] }: StudentsSearchC
               </SelectContent>
             </Select>
 
-            <Button variant="outline" onClick={handleStatusToggle}>
+            <Button variant="outline" onClick={handleStatusToggle} disabled={isPending}>
+              {isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
               {statusFilter === "all"
                 ? "All"
                 : `Status: ${statusFilter}`}
             </Button>
 
-            <Button variant="outline" onClick={handleExport}>
+            <Button variant="outline" onClick={handleExport} disabled={isPending}>
               <Download className="mr-2 h-4 w-4" />
               Export
             </Button>
@@ -173,10 +186,13 @@ export function StudentsSearchClient({ batches, students = [] }: StudentsSearchC
       <button
         onClick={() => {
           setSearch("");
-          setStatusFilter("all");
-          router.push("/dashboard/students");
+          setStatusFilter("active");
+          startTransition(() => {
+            router.push("/dashboard/students");
+          });
         }}
         className="text-blue-600 hover:underline"
+        disabled={isPending}
       >
         Clear all
       </button>

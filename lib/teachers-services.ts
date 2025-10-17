@@ -8,6 +8,8 @@ export interface Teacher {
   last_name: string;
   email?: string;
   phone?: string;
+  nationality?: string;
+  age?: number;
   department?: string;
   position?: string;
   hire_date?: string;
@@ -43,6 +45,8 @@ export interface CreateTeacherData {
   last_name: string;
   email?: string;
   phone?: string;
+  nationality?: string;
+  age?: number;
   department?: string;
   position?: string;
   hire_date?: string;

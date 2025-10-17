@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
-import { Calendar, Mail, Phone, User, BookOpen, Eye } from "lucide-react";
+import { Calendar, Mail, Phone, User, BookOpen, Eye, UserCircle2, Globe, Cake } from "lucide-react";
 import { Student } from "@/lib/students-services";
 import { getRankingsFiltered } from "@/lib/rankings-services";
 import { supabase } from "@/lib/supabase/client";
@@ -285,17 +285,28 @@ export function StudentDetailsDialog({ open, onOpenChange, student }: StudentDet
                   <span className="font-medium min-w-0">Phone:</span>
                   <span className="truncate">{student.phone || "N/A"}</span>
                 </div>
-              </div>
-
-              <div className="space-y-3">
                 <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
                   <BookOpen className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
                   <span className="font-medium min-w-0">Batch:</span>
                   <span className="truncate">{student.batch?.batch_code || "No Batch"}</span>
                 </div>
+              </div>
+
+              <div className="space-y-3">
                 <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
+                  <UserCircle2 className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
                   <span className="font-medium min-w-0">Gender:</span>
                   <span>{student.gender?.charAt(0).toUpperCase() + student.gender?.slice(1) || "N/A"}</span>
+                </div>
+                <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
+                  <Cake className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+                  <span className="font-medium min-w-0">Age:</span>
+                  <span>{student.age || "N/A"}</span>
+                </div>
+                <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
+                  <Globe className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+                  <span className="font-medium min-w-0">Nationality:</span>
+                  <span className="truncate">{student.nationality || "N/A"}</span>
                 </div>
                 <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
                   <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />

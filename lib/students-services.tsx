@@ -8,6 +8,8 @@ export interface Student {
   email: string;
   phone: string;
   gender: string;
+  nationality?: string;
+  age?: number;
   batch_id: string;
   profile_picture: string | null;
   is_active: boolean;
@@ -44,6 +46,8 @@ export interface CreateStudentData {
   email?: string;
   phone?: string;
   gender: string;
+  nationality?: string;
+  age?: number;
   batch_id: string;
   profile_picture?: File | null;
   notes?: string;
@@ -240,6 +244,8 @@ export async function createStudent(data: CreateStudentData): Promise<Student> {
       email: data.email || null,
       phone: data.phone || null,
       gender: data.gender,
+      nationality: data.nationality || null,
+      age: data.age || null,
       batch_id: data.batch_id,
       profile_picture: profilePictureUrl,
       notes: data.notes || null,
@@ -581,6 +587,8 @@ export interface UpdateStudentData {
   email?: string | null;
   phone?: string | null;
   gender?: string;
+  nationality?: string | null;
+  age?: number | null;
   batch_id?: string;
   notes?: string | null;
   is_active?: boolean;
