@@ -26,7 +26,7 @@ export default async function StudentsPage({ searchParams }: PageProps) {
   // Default to 'active' status if no status is provided
   const filtersWithDefaults = {
     ...resolvedSearchParams,
-    status: resolvedSearchParams.status || 'all'
+    status: resolvedSearchParams.status || 'active'
   };
 
   const [students, stats, batches] = await Promise.all([

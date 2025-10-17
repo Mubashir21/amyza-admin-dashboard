@@ -54,6 +54,8 @@ const formSchema = z.object({
   last_name: z.string().min(2, { message: "Last name must be at least 2 characters." }),
   email: z.string().email({ message: "Please enter a valid email address." }).optional().or(z.literal("")),
   phone: z.string().optional(),
+  nationality: z.string().optional(),
+  age: z.number().min(18, "Age must be at least 18.").max(100, "Age must be less than 100.").optional(),
   department: z.string().min(1, { message: "Department is required." }),
   position: z.string().min(1, { message: "Position is required." }),
   hire_date: z.date({ message: "Please select a hire date." }),
@@ -92,6 +94,7 @@ export function EditTeacherDialog({
       last_name: "",
       email: "",
       phone: "",
+      nationality: "",
       department: "",
       position: "",
       hire_date: new Date(),
@@ -107,6 +110,8 @@ export function EditTeacherDialog({
         last_name: teacher.last_name,
         email: teacher.email || "",
         phone: teacher.phone || "",
+        nationality: teacher.nationality || "",
+        age: teacher.age || undefined,
         department: teacher.department,
         position: teacher.position,
         hire_date: teacher.hire_date ? new Date(teacher.hire_date) : new Date(),
@@ -196,6 +201,8 @@ export function EditTeacherDialog({
         last_name: values.last_name,
         email: values.email || undefined,
         phone: values.phone || undefined,
+        nationality: values.nationality || undefined,
+        age: values.age,
         department: values.department,
         position: values.position,
         hire_date: values.hire_date.toISOString().split('T')[0], // Format as YYYY-MM-DD
@@ -371,6 +378,44 @@ export function EditTeacherDialog({
                 </FormItem>
               )}
             />
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="nationality"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nationality</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., American, British, etc." {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+                <FormField
+                  control={form.control}
+                  name="age"
+                  render={({ field: { value, onChange, ...fieldProps } }) => (
+                    <FormItem>
+                      <FormLabel>Age</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="30"
+                          {...fieldProps}
+                          value={value === undefined ? "" : value}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            onChange(val === "" ? undefined : Number(val));
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+            </div>
 
             <div className="grid grid-cols-2 gap-4">
               <FormField

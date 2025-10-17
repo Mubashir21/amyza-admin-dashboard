@@ -25,6 +25,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { MoreVertical, Edit, Trash2, Mail, Phone, Eye } from "lucide-react";
+import { toast } from "sonner";
 import { Student, deleteStudent } from "@/lib/students-services";
 import { EditStudentDialog } from "@/components/students/students-edit-dialog";
 import { StudentDetailsDialog } from "@/components/students/student-details-dialog";
@@ -138,17 +139,27 @@ export function StudentCard({ student, batches = [] }: StudentCardProps) {
     try {
       await deleteStudent(student.id);
 
+      // Show success toast
+      toast.success("Student deleted successfully!", {
+        description: `${student.first_name} ${student.last_name} has been removed from the system.`,
+      });
+
       // Close the dialog
       setShowDeleteDialog(false);
 
       // Refresh the page to show updated list
       router.refresh();
-
-      // Optional: Show success message
-      console.log("Student deleted successfully");
     } catch (error) {
       console.error("Failed to delete student:", error);
-      // Optional: Show error message to user
+      
+      // Show error toast
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : "An error occurred while deleting the student";
+      
+      toast.error("Failed to delete student", {
+        description: errorMessage,
+      });
     } finally {
       setIsDeleting(false);
     }

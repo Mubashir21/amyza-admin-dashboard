@@ -34,6 +34,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Plus, Upload, X } from "lucide-react";
+import { toast } from "sonner";
 import {
   generateUniqueStudentId,
   createStudent,
@@ -56,6 +57,8 @@ const formSchema = z.object({
   gender: z.enum(["male", "female"]).refine((val) => !!val, {
     message: "Gender is required",
   }),
+  nationality: z.string().optional(),
+  age: z.number().min(5, "Age must be at least 5.").max(100, "Age must be less than 100.").optional(),
   batch_id: z.string().min(1, {
     message: "Please select a batch.",
   }),
@@ -88,6 +91,7 @@ export function AddStudentDialog({ batches = [] }: AddStudentDialogProps) {
       email: "",
       phone: "",
       gender: undefined,
+      nationality: "",
       batch_id: "",
     },
   });
@@ -171,6 +175,8 @@ export function AddStudentDialog({ batches = [] }: AddStudentDialogProps) {
         email: values.email || undefined,
         phone: values.phone || undefined,
         gender: values.gender,
+        nationality: values.nationality || undefined,
+        age: values.age,
         batch_id: values.batch_id,
         notes: values.notes || undefined,
         profile_picture: profileImage,
@@ -181,6 +187,11 @@ export function AddStudentDialog({ batches = [] }: AddStudentDialogProps) {
 
       console.log("Student created successfully:", newStudent);
 
+      // Show success toast
+      toast.success("Student added successfully!", {
+        description: `${newStudent.first_name} ${newStudent.last_name} has been added to the system.`,
+      });
+
       // Reset form and close dialog on success
       form.reset();
       setOpen(false);
@@ -190,11 +201,14 @@ export function AddStudentDialog({ batches = [] }: AddStudentDialogProps) {
     } catch (err: unknown) {
       console.error("Error creating student:", err);
 
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("An error occurred while adding the student");
-      }
+      const errorMessage = err instanceof Error 
+        ? err.message 
+        : "An error occurred while adding the student";
+      
+      setError(errorMessage);
+      toast.error("Failed to add student", {
+        description: errorMessage,
+      });
     } finally {
       setIsLoading(false);
     }
@@ -356,26 +370,65 @@ export function AddStudentDialog({ batches = [] }: AddStudentDialogProps) {
               )}
             />
 
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="gender"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Gender *</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select gender" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="male">Male</SelectItem>
+                        <SelectItem value="female">Female</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="age"
+                render={({ field: { value, onChange, ...fieldProps } }) => (
+                  <FormItem>
+                    <FormLabel>Age</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="18"
+                        {...fieldProps}
+                        value={value === undefined ? "" : value}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          onChange(val === "" ? undefined : Number(val));
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
             <FormField
               control={form.control}
-              name="gender"
+              name="nationality"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Gender *</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select gender" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="male">Male</SelectItem>
-                      <SelectItem value="female">Female</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <FormLabel>Nationality</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., American, British, etc." {...field} />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

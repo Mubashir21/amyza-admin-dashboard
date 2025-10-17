@@ -11,7 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { Mail, Phone, Calendar, Briefcase, FileText, Eye, Users } from "lucide-react";
+import { Mail, Phone, Calendar, Briefcase, FileText, Eye, Users, Globe, Cake } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { Teacher } from "@/lib/teachers-services";
 
@@ -229,17 +229,28 @@ export function TeacherDetailsDialog({
                   <span className="font-medium min-w-0">Phone:</span>
                   <span className="truncate">{teacher.phone || "N/A"}</span>
                 </div>
-              </div>
-
-              <div className="space-y-3">
                 <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
                   <Briefcase className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
                   <span className="font-medium min-w-0">Department:</span>
                   <span className="truncate">{teacher.department || "N/A"}</span>
                 </div>
+              </div>
+
+              <div className="space-y-3">
                 <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
+                  <Briefcase className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
                   <span className="font-medium min-w-0">Position:</span>
-                  <span>{teacher.position || "N/A"}</span>
+                  <span className="truncate">{teacher.position || "N/A"}</span>
+                </div>
+                <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
+                  <Cake className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+                  <span className="font-medium min-w-0">Age:</span>
+                  <span>{teacher.age || "N/A"}</span>
+                </div>
+                <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
+                  <Globe className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+                  <span className="font-medium min-w-0">Nationality:</span>
+                  <span className="truncate">{teacher.nationality || "N/A"}</span>
                 </div>
                 <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
                   <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />

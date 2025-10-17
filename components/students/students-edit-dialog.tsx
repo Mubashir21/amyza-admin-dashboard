@@ -33,6 +33,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Upload, X, User } from "lucide-react";
+import { toast } from "sonner";
 import {
   removeStudentProfilePicture,
   updateStudent,
@@ -57,6 +58,8 @@ const formSchema = z.object({
   gender: z.enum(["male", "female"]).refine((val) => !!val, {
     message: "Gender is required",
   }),
+  nationality: z.string().optional(),
+  age: z.number().min(5, "Age must be at least 5.").max(100, "Age must be less than 100.").optional(),
   batch_id: z.string().min(1, {
     message: "Please select a batch.",
   }),
@@ -92,6 +95,17 @@ export function EditStudentDialog({
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     mode: "onTouched",
+    defaultValues: {
+      first_name: "",
+      last_name: "",
+      email: "",
+      phone: "",
+      gender: undefined,
+      nationality: "",
+      batch_id: "",
+      notes: "",
+      is_active: true,
+    },
   });
 
   // Populate form when student data changes
@@ -103,6 +117,8 @@ export function EditStudentDialog({
         email: student.email || "",
         phone: student.phone || "",
         gender: student.gender as "male" | "female",
+        nationality: student.nationality || "",
+        age: student.age || undefined,
         batch_id: student.batch_id || "",
         notes: student.notes || "",
         is_active: student.is_active ?? true,
@@ -191,12 +207,19 @@ export function EditStudentDialog({
         email: values.email || null,
         phone: values.phone || null,
         gender: values.gender,
+        nationality: values.nationality || null,
+        age: values.age !== undefined ? values.age : null,
         batch_id: values.batch_id,
         notes: values.notes || null,
         is_active: values.is_active,
       };
 
       await updateStudent(student.id, updateData);
+
+      // Show success toast
+      toast.success("Student updated successfully!", {
+        description: `${values.first_name} ${values.last_name}'s information has been updated.`,
+      });
 
       onOpenChange(false);
       router.refresh();
@@ -207,6 +230,9 @@ export function EditStudentDialog({
           ? err.message
           : "An error occurred while updating the student";
       setError(errorMessage);
+      toast.error("Failed to update student", {
+        description: errorMessage,
+      });
     } finally {
       setIsLoading(false);
     }
@@ -360,7 +386,7 @@ export function EditStudentDialog({
                 )}
               />
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="gender"
@@ -381,6 +407,45 @@ export function EditStudentDialog({
                           <SelectItem value="female">Female</SelectItem>
                         </SelectContent>
                       </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="age"
+                  render={({ field: { value, onChange, ...fieldProps } }) => (
+                    <FormItem>
+                      <FormLabel>Age</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="18"
+                          {...fieldProps}
+                          value={value === undefined ? "" : value}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            onChange(val === "" ? undefined : Number(val));
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="nationality"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nationality</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., American, British, etc." {...field} />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -455,6 +520,14 @@ export function EditStudentDialog({
                   <span className="font-medium">Gender:</span>{" "}
                   {form.watch("gender")?.charAt(0).toUpperCase() +
                     form.watch("gender")?.slice(1)}
+                </div>
+                <div>
+                  <span className="font-medium">Age:</span>{" "}
+                  {form.watch("age") || "Not provided"}
+                </div>
+                <div>
+                  <span className="font-medium">Nationality:</span>{" "}
+                  {form.watch("nationality") || "Not provided"}
                 </div>
               </div>
             </div>
