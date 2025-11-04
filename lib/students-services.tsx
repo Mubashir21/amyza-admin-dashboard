@@ -38,6 +38,9 @@ export interface StudentsStatsData {
   activeStudents: number;
   averagePerformance: number;
   averageAttendance: number;
+  newStudentsThisMonth: number;
+  performanceTrend: number;
+  performanceTrendDirection: "up" | "down";
 }
 
 export interface CreateStudentData {
@@ -490,7 +493,31 @@ export async function getStudentsWithMetrics(filters?: {
 // Get student statistics
 export async function getStudentsStats(): Promise<StudentsStatsData> {
   try {
-    const [totalQuery, activeQuery, performanceQuery] = await Promise.all([
+    const currentDate = new Date();
+    const startOfMonth = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth(),
+      1
+    );
+    const startOfLastMonth = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth() - 1,
+      1
+    );
+    const endOfLastMonth = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth(),
+      0
+    );
+
+    const [
+      totalQuery,
+      activeQuery,
+      performanceQuery,
+      newStudentsQuery,
+      lastMonthPerformanceQuery,
+      attendanceQuery,
+    ] = await Promise.all([
       supabase.from("students").select("id", { count: "exact" }),
       supabase
         .from("students")
@@ -500,24 +527,39 @@ export async function getStudentsStats(): Promise<StudentsStatsData> {
         .from("students")
         .select(
           "creativity,leadership,behavior,presentation,communication,technical_skills,general_performance"
-        ),
+        )
+        .eq("is_active", true),
+      supabase
+        .from("students")
+        .select("id", { count: "exact" })
+        .gte("created_at", startOfMonth.toISOString()),
+      supabase
+        .from("students")
+        .select(
+          "creativity,leadership,behavior,presentation,communication,technical_skills,general_performance,updated_at"
+        )
+        .gte("updated_at", startOfLastMonth.toISOString())
+        .lte("updated_at", endOfLastMonth.toISOString())
+        .eq("is_active", true),
+      supabase.from("attendance").select("status"),
     ]);
 
     const totalStudents = totalQuery.count || 0;
     const activeStudents = activeQuery.count || 0;
+    const newStudentsThisMonth = newStudentsQuery.count || 0;
 
     // Calculate average performance
     let averagePerformance = 0;
     if (performanceQuery.data && performanceQuery.data.length > 0) {
       const totalScores = performanceQuery.data.reduce((acc, student) => {
         const studentAvg =
-          (student.creativity +
-            student.leadership +
-            student.behavior +
-            student.presentation +
-            student.communication +
-            student.technical_skills +
-            student.general_performance) /
+          ((student.creativity || 0) +
+            (student.leadership || 0) +
+            (student.behavior || 0) +
+            (student.presentation || 0) +
+            (student.communication || 0) +
+            (student.technical_skills || 0) +
+            (student.general_performance || 0)) /
           7;
         return acc + studentAvg;
       }, 0);
@@ -525,14 +567,56 @@ export async function getStudentsStats(): Promise<StudentsStatsData> {
         Math.round((totalScores / performanceQuery.data.length) * 10) / 10;
     }
 
-    // Calculate average attendance (simplified - you might want to improve this)
-    const averageAttendance = 91; // Placeholder - implement proper attendance calculation
+    // Calculate performance trend from last month
+    let lastMonthPerformance = 0;
+    if (
+      lastMonthPerformanceQuery.data &&
+      lastMonthPerformanceQuery.data.length > 0
+    ) {
+      const lastMonthScores = lastMonthPerformanceQuery.data.reduce(
+        (acc, student) => {
+          const studentAvg =
+            ((student.creativity || 0) +
+              (student.leadership || 0) +
+              (student.behavior || 0) +
+              (student.presentation || 0) +
+              (student.communication || 0) +
+              (student.technical_skills || 0) +
+              (student.general_performance || 0)) /
+            7;
+          return acc + studentAvg;
+        },
+        0
+      );
+      lastMonthPerformance =
+        lastMonthScores / lastMonthPerformanceQuery.data.length;
+    }
+
+    const performanceTrend =
+      lastMonthPerformance > 0
+        ? Math.round((averagePerformance - lastMonthPerformance) * 10) / 10
+        : 0;
+    const performanceTrendDirection: "up" | "down" =
+      performanceTrend >= 0 ? "up" : "down";
+
+    // Calculate average attendance across all students
+    let averageAttendance = 0;
+    if (attendanceQuery.data && attendanceQuery.data.length > 0) {
+      const totalRecords = attendanceQuery.data.length;
+      const presentRecords = attendanceQuery.data.filter(
+        (record) => record.status === "present" || record.status === "late"
+      ).length;
+      averageAttendance = Math.round((presentRecords / totalRecords) * 100);
+    }
 
     return {
       totalStudents,
       activeStudents,
       averagePerformance,
       averageAttendance,
+      newStudentsThisMonth,
+      performanceTrend: Math.abs(performanceTrend),
+      performanceTrendDirection,
     };
   } catch (error) {
     console.error("Failed to fetch student stats:", error);

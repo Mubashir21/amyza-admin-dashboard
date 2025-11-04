@@ -64,7 +64,8 @@ export function AttendanceAnalytics({ records }: AttendanceListProps) {
   const absentCount = records.filter(r => r.status === "absent").length;
   const lateCount = records.filter(r => r.status === "late").length;
   
-  const attendanceRate = totalRecords > 0 ? Math.round((presentCount / totalRecords) * 100) : 0;
+  // Attendance rate includes both present and late (late means they attended, just not on time)
+  const attendanceRate = totalRecords > 0 ? Math.round(((presentCount + lateCount) / totalRecords) * 100) : 0;
   const lateRate = totalRecords > 0 ? Math.round((lateCount / totalRecords) * 100) : 0;
 
   // Group by batch
@@ -193,7 +194,8 @@ export function AttendanceAnalytics({ records }: AttendanceListProps) {
         <CardContent>
           <div className="space-y-4">
             {Object.entries(batchStats).map(([batchCode, stats]) => {
-              const batchAttendanceRate = Math.round((stats.present / stats.total) * 100);
+              // Attendance rate includes both present and late
+              const batchAttendanceRate = Math.round(((stats.present + stats.late) / stats.total) * 100);
               const isExpanded = expandedBatches.has(batchCode);
               const batchStudents = getStudentsByBatch(batchCode);
               
@@ -213,7 +215,7 @@ export function AttendanceAnalytics({ records }: AttendanceListProps) {
                         <span className="font-medium">{batchCode}</span>
                       </div>
                       <span className="text-sm text-muted-foreground">
-                        {stats.present}/{stats.total} ({batchAttendanceRate}%)
+                        {stats.present + stats.late}/{stats.total} ({batchAttendanceRate}%)
                       </span>
                     </div>
                     <Progress value={batchAttendanceRate} className="h-2" />
@@ -241,8 +243,9 @@ export function AttendanceAnalytics({ records }: AttendanceListProps) {
                       </h4>
                       <div className="space-y-2">
                         {Object.entries(batchStudents).map(([studentName, studentData]) => {
+                          // Attendance rate includes both present and late
                           const studentAttendanceRate = Math.round(
-                            (studentData.stats.present / studentData.stats.total) * 100
+                            ((studentData.stats.present + studentData.stats.late) / studentData.stats.total) * 100
                           );
                           
                           return (

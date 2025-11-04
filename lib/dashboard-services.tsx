@@ -76,13 +76,42 @@ export interface SystemAlert {
 
 export async function getDashboardStats(): Promise<DashboardStats> {
   try {
-    // Get total students
+    const currentDate = new Date();
+    
+    // Get total students (current)
     const { count: totalStudents, error: studentsError } = await supabase
       .from("students")
       .select("*", { count: "exact", head: true })
       .eq("is_active", true);
 
     if (studentsError) throw studentsError;
+
+    // Get total students from last month for trend calculation
+    const lastMonth = new Date(currentDate);
+    lastMonth.setMonth(lastMonth.getMonth() - 1);
+    const startOfLastMonth = new Date(
+      lastMonth.getFullYear(),
+      lastMonth.getMonth(),
+      1
+    );
+    const endOfLastMonth = new Date(
+      lastMonth.getFullYear(),
+      lastMonth.getMonth() + 1,
+      0
+    );
+
+    const { data: lastMonthStudents, error: lastMonthError } = await supabase
+      .from("students")
+      .select("created_at")
+      .lte("created_at", endOfLastMonth.toISOString());
+
+    if (lastMonthError) console.error("Error fetching last month students:", lastMonthError);
+
+    const lastMonthStudentCount = lastMonthStudents?.length || 0;
+    const studentTrend = lastMonthStudentCount > 0
+      ? parseFloat((((totalStudents || 0) - lastMonthStudentCount) / lastMonthStudentCount * 100).toFixed(1))
+      : 0;
+    const studentTrendDirection = studentTrend >= 0 ? "up" : "down";
 
     // Get active batches
     const { count: activeBatches, error: batchesError } = await supabase
@@ -92,11 +121,24 @@ export async function getDashboardStats(): Promise<DashboardStats> {
 
     if (batchesError) throw batchesError;
 
+    // Get new batches this quarter
+    const startOfQuarter = new Date(
+      currentDate.getFullYear(),
+      Math.floor(currentDate.getMonth() / 3) * 3,
+      1
+    );
+
+    const { count: newBatchesThisQuarter, error: quarterBatchesError } = await supabase
+      .from("batches")
+      .select("*", { count: "exact", head: true })
+      .gte("created_at", startOfQuarter.toISOString());
+
+    if (quarterBatchesError) console.error("Error fetching quarter batches:", quarterBatchesError);
+
     // Get attendance average for current month
-    const currentMonth = new Date();
     const startOfMonth = new Date(
-      currentMonth.getFullYear(),
-      currentMonth.getMonth(),
+      currentDate.getFullYear(),
+      currentDate.getMonth(),
       1
     );
 
@@ -118,7 +160,34 @@ export async function getDashboardStats(): Promise<DashboardStats> {
         ? Math.round((presentRecords / totalAttendanceRecords) * 100)
         : 0;
 
-    // Get average performance score
+    // Get attendance average for last week to calculate trend
+    const lastWeek = new Date(currentDate);
+    lastWeek.setDate(lastWeek.getDate() - 7);
+    const twoWeeksAgo = new Date(lastWeek);
+    twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 7);
+
+    const { data: lastWeekAttendance, error: lastWeekError } = await supabase
+      .from("attendance")
+      .select("status")
+      .gte("date", twoWeeksAgo.toISOString().split("T")[0])
+      .lt("date", lastWeek.toISOString().split("T")[0]);
+
+    if (lastWeekError) console.error("Error fetching last week attendance:", lastWeekError);
+
+    const lastWeekTotal = lastWeekAttendance?.length || 0;
+    const lastWeekPresent =
+      lastWeekAttendance?.filter(
+        (record) => record.status === "present" || record.status === "late"
+      ).length || 0;
+    const lastWeekPercentage =
+      lastWeekTotal > 0 ? Math.round((lastWeekPresent / lastWeekTotal) * 100) : 0;
+
+    const attendanceTrend = lastWeekPercentage > 0
+      ? parseFloat((avgAttendance - lastWeekPercentage).toFixed(1))
+      : 0;
+    const attendanceTrendDirection = attendanceTrend >= 0 ? "up" : "down";
+
+    // Get average performance score (current)
     const { data: studentsData, error: performanceError } = await supabase
       .from("students")
       .select(
@@ -147,28 +216,62 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       );
     }
 
+    // Get last month's performance to calculate trend
+    const { data: lastMonthStudentsData, error: lastMonthPerfError } = await supabase
+      .from("students")
+      .select(
+        "creativity, leadership, behavior, presentation, communication, technical_skills, general_performance, updated_at"
+      )
+      .gte("updated_at", startOfLastMonth.toISOString())
+      .lte("updated_at", endOfLastMonth.toISOString())
+      .eq("is_active", true);
+
+    if (lastMonthPerfError) console.error("Error fetching last month performance:", lastMonthPerfError);
+
+    let lastMonthPerformance = 0;
+    if (lastMonthStudentsData && lastMonthStudentsData.length > 0) {
+      const lastMonthScores = lastMonthStudentsData.reduce((acc, student) => {
+        const studentAvg =
+          ((student.creativity || 0) +
+            (student.leadership || 0) +
+            (student.behavior || 0) +
+            (student.presentation || 0) +
+            (student.communication || 0) +
+            (student.technical_skills || 0) +
+            (student.general_performance || 0)) /
+          7;
+        return acc + studentAvg;
+      }, 0);
+      lastMonthPerformance = lastMonthScores / lastMonthStudentsData.length;
+    }
+
+    const performanceTrend = lastMonthPerformance > 0
+      ? parseFloat((avgPerformanceScore - lastMonthPerformance).toFixed(1))
+      : 0;
+    const performanceTrendDirection: "up" | "down" = performanceTrend >= 0 ? "up" : "down";
+
     return {
       totalStudents: {
         count: totalStudents || 0,
-        trend: 12, // This would be calculated from historical data
-        trendDirection: "up",
+        trend: Math.abs(studentTrend),
+        trendDirection: studentTrendDirection,
         progress: 75,
       },
       activeBatches: {
         count: activeBatches || 0,
-        newThisQuarter: 2, // This would be calculated from quarter data
+        newThisQuarter: newBatchesThisQuarter || 0,
         progress: 80,
       },
       avgAttendance: {
         percentage: avgAttendance,
-        trend: -2.1, // This would be calculated from week-over-week data
-        trendDirection: "down",
+        trend: Math.abs(attendanceTrend),
+        trendDirection: attendanceTrendDirection,
       },
       performanceScore: {
         score: avgPerformanceScore,
         maxScore: 10,
-        trend: 0.3, // This would be calculated from month-over-month data
-        trendDirection: "up",
+        trend: Math.abs(performanceTrend),
+        trendDirection: performanceTrendDirection,
       },
     };
   } catch (error) {

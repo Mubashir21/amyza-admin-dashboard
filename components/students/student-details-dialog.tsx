@@ -190,12 +190,16 @@ export function StudentDetailsDialog({ open, onOpenChange, student }: StudentDet
     }
   };
 
-  const getStatusColor = (status: string): "default" | "secondary" | "destructive" | "outline" => {
+  const getStatusColor = (status: string) => {
     switch(status) {
-      case 'present': return 'default';
-      case 'late': return 'secondary';
-      case 'absent': return 'destructive';
-      default: return 'outline';
+      case 'present': 
+        return 'bg-green-100 text-green-800 border-green-200 hover:bg-green-100';
+      case 'late': 
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-100';
+      case 'absent': 
+        return 'bg-red-100 text-red-800 border-red-200 hover:bg-red-100';
+      default: 
+        return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
@@ -392,14 +396,7 @@ export function StudentDetailsDialog({ open, onOpenChange, student }: StudentDet
 
               <div className="bg-muted/50 p-3 sm:p-4 rounded-lg">
                 <h4 className="text-xs sm:text-sm font-medium mb-2 sm:mb-3">
-                  Recent Classes {recentAttendance.length > 0 && recentAttendance.some(r => {
-                    if (typeof r.day_of_week === 'number') {
-                      return [7, 2, 5].includes(r.day_of_week);
-                    }
-                    return ['saturday', 'monday', 'thursday'].includes(String(r.day_of_week).toLowerCase());
-                  }) 
-                    ? "(Sat, Mon, Thu)" 
-                    : "(All Days)"}
+                  Recent Classes (Sat, Mon, Thu)
                 </h4>
                 <div className="space-y-1.5 sm:space-y-2">
                   {recentAttendance.length > 0 ? (
@@ -411,7 +408,7 @@ export function StudentDetailsDialog({ open, onOpenChange, student }: StudentDet
                             ({getDayDisplayName(record.day_of_week)})
                           </span>
                         </div>
-                        <Badge variant={getStatusColor(record.status)} className="text-xs ml-2 flex-shrink-0">
+                        <Badge className={`text-xs ml-2 flex-shrink-0 ${getStatusColor(record.status)}`}>
                           {getStatusDisplay(record.status)}
                         </Badge>
                       </div>

@@ -3,11 +3,9 @@ import { RankingsHeader } from "@/components/rankings/rankings-header";
 import { RankingsSearchClient } from "@/components/rankings/rankings-search";
 import { RankingsStats } from "@/components/rankings/rankings-stats";
 import { RankingsList } from "@/components/rankings/rankings-list";
-import { PerformanceCategories } from "@/components/rankings/performance-categories";
 import {
   getRankingsFiltered,
   getRankingsStats,
-  getPerformanceCategories,
   getBatchesForRankings,
 } from "@/lib/rankings-services";
 import { getStudentsWithMetrics } from "@/lib/students-services";
@@ -24,10 +22,9 @@ export default async function RankingsPage({ searchParams }: PageProps) {
   const resolvedSearchParams = await searchParams;
   const batchStatus = resolvedSearchParams.batchStatus || "all";
 
-  const [rankings, stats, categories, batches, students] = await Promise.all([
+  const [rankings, stats, batches, students] = await Promise.all([
     getRankingsFiltered(resolvedSearchParams),
     getRankingsStats(resolvedSearchParams),
-    getPerformanceCategories(resolvedSearchParams),
     getBatchesForRankings(batchStatus),
     getStudentsWithMetrics({}),
   ]);
@@ -55,12 +52,7 @@ export default async function RankingsPage({ searchParams }: PageProps) {
 
       {/* Rankings List */}
       <ResponsiveContainer>
-        <RankingsList students={rankings} />
-      </ResponsiveContainer>
-
-      {/* Performance Categories */}
-      <ResponsiveContainer>
-        <PerformanceCategories categories={categories} />
+        <RankingsList students={rankings} batches={batches} />
       </ResponsiveContainer>
     </div>
   );

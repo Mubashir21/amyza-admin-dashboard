@@ -189,6 +189,22 @@ export function AttendanceSearchClient({
                   mode="single"
                   selected={date}
                   onSelect={handleDateFilter}
+                  modifiers={{
+                    classDay: (date) => {
+                      const jsDay = date.getDay(); // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+                      // Saturday (6), Monday (1), Thursday (4)
+                      return [6, 1, 4].includes(jsDay);
+                    },
+                    nonClassDay: (date) => {
+                      const jsDay = date.getDay(); // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+                      // Not Saturday, Monday, or Thursday
+                      return ![6, 1, 4].includes(jsDay);
+                    },
+                  }}
+                  modifiersClassNames={{
+                    classDay: "bg-green-100 text-green-900 hover:bg-green-200 font-semibold",
+                    nonClassDay: "bg-red-50 text-red-400 hover:bg-red-100",
+                  }}
                   initialFocus
                 />
               </PopoverContent>

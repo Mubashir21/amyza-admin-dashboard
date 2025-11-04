@@ -62,10 +62,16 @@ function transformBatchForDisplay(
 
 export default async function BatchesPage({ searchParams }: PageProps) {
   const resolvedSearchParams = await searchParams;
+  
+  // Default to 'active' status if no status is provided
+  const filtersWithDefaults = {
+    ...resolvedSearchParams,
+    status: resolvedSearchParams.status || 'active'
+  };
 
   const [batches, stats, studentCounts, attendanceRates, totalStudents] =
     await Promise.all([
-      getBatchesFiltered(resolvedSearchParams),
+      getBatchesFiltered(filtersWithDefaults),
       getBatchStats(),
       getBatchStudentCounts(),
       getBatchAttendanceRates(),
