@@ -125,7 +125,7 @@ export function DashboardStats({ stats }: DashboardStatsProps) {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">
-            Performance Score
+            Average Performance
           </CardTitle>
           <Trophy className="h-4 w-4 text-yellow-600" />
         </CardHeader>
@@ -149,7 +149,7 @@ export function DashboardStats({ stats }: DashboardStatsProps) {
               {stats.performanceScore.trendDirection === "up" ? "+" : ""}
               {stats.performanceScore.trend}
             </span>
-            <span className="ml-1">this month</span>
+            <span className="ml-1">from last month</span>
           </div>
           <Progress
             value={

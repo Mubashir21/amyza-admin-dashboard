@@ -70,8 +70,7 @@ export async function getAttendanceFiltered(
     }
 
     const { data, error } = await query
-      .order("created_at", { ascending: false })
-      .limit(20);
+      .order("created_at", { ascending: false });
 
     if (error) throw new Error(error.message);
 

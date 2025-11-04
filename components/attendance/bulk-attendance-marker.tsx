@@ -355,7 +355,7 @@ export function BulkAttendanceMarker({
             Bulk Attendance Marking
           </CardTitle>
           <CardDescription>
-            Select a batch and date to mark attendance for all students at once
+            Select a batch and date to mark attendance for all students at once. Classes are held on Saturday, Monday, and Thursday.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -419,14 +419,29 @@ export function BulkAttendanceMarker({
                     disabled={(date) =>
                       date > new Date() || date < new Date("1900-01-01")
                     }
+                    modifiers={{
+                      classDay: (date) => {
+                        const jsDay = date.getDay(); // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+                        // Saturday (6), Monday (1), Thursday (4)
+                        return [6, 1, 4].includes(jsDay);
+                      },
+                      nonClassDay: (date) => {
+                        const jsDay = date.getDay(); // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+                        // Not Saturday, Monday, or Thursday
+                        return ![6, 1, 4].includes(jsDay);
+                      },
+                    }}
+                    modifiersClassNames={{
+                      classDay: "bg-green-100 text-green-900 hover:bg-green-200 font-semibold",
+                      nonClassDay: "bg-red-50 text-red-400 hover:bg-red-100",
+                    }}
                     initialFocus
                   />
                 </PopoverContent>
               </Popover>
               {selectedDate && !isClassDay(selectedDate) && (
                 <p className="text-xs text-red-600 mt-1">
-                  ⚠️ This is not a class day. Classes are held on Saturday,
-                  Monday, and Thursday.
+                  ⚠️ This is not a class day. Classes are held on Saturday, Monday, and Thursday.
                 </p>
               )}
             </div>

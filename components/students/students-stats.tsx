@@ -1,11 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, GraduationCap, Trophy, TrendingUp } from "lucide-react";
+import { Users, GraduationCap, Trophy, TrendingUp, TrendingDown } from "lucide-react";
 
 interface StudentsStatsData {
   totalStudents: number;
   activeStudents: number;
   averagePerformance: number;
   averageAttendance: number;
+  newStudentsThisMonth: number;
+  performanceTrend: number;
+  performanceTrendDirection: "up" | "down";
 }
 
 interface StudentsStatsProps {
@@ -27,7 +30,11 @@ export function StudentsStats({ stats }: StudentsStatsProps) {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{stats.totalStudents}</div>
-          <p className="text-xs text-muted-foreground">+2 new this month</p>
+          <p className="text-xs text-muted-foreground">
+            {stats.newStudentsThisMonth > 0
+              ? `+${stats.newStudentsThisMonth} new this month`
+              : "No new students this month"}
+          </p>
         </CardContent>
       </Card>
 
@@ -55,7 +62,30 @@ export function StudentsStats({ stats }: StudentsStatsProps) {
           <div className="text-2xl font-bold">
             {stats.averagePerformance}/10
           </div>
-          <p className="text-xs text-muted-foreground">+0.3 from last month</p>
+          <div className="flex items-center text-xs text-muted-foreground">
+            {stats.performanceTrend > 0 ? (
+              <>
+                {stats.performanceTrendDirection === "up" ? (
+                  <TrendingUp className="mr-1 h-3 w-3 text-green-600" />
+                ) : (
+                  <TrendingDown className="mr-1 h-3 w-3 text-red-600" />
+                )}
+                <span
+                  className={
+                    stats.performanceTrendDirection === "up"
+                      ? "text-green-600"
+                      : "text-red-600"
+                  }
+                >
+                  {stats.performanceTrendDirection === "up" ? "+" : ""}
+                  {stats.performanceTrend}
+                </span>
+                <span className="ml-1">from last month</span>
+              </>
+            ) : (
+              <span>No change from last month</span>
+            )}
+          </div>
         </CardContent>
       </Card>
 
