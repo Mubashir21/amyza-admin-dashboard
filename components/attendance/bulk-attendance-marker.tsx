@@ -328,7 +328,7 @@ export function BulkAttendanceMarker({
 
   const isClassDay = (date: Date) => {
     const dayOfWeek = date.getDay() === 0 ? 1 : date.getDay() + 1;
-    return [7, 2, 5].includes(dayOfWeek);
+    return [7, 2, 4].includes(dayOfWeek);
   };
 
   const presentCount = Object.values(attendance).filter(
