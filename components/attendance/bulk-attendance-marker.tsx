@@ -109,11 +109,12 @@ export function BulkAttendanceMarker({
 
       const formattedDate = formatDateSafely(selectedDate);
 
-      const { data: existingAttendance, error: attendanceError } = await supabase
-        .from("attendance")
-        .select("student_id, status")
-        .eq("batch_id", selectedBatch)
-        .eq("date", formattedDate);
+      const { data: existingAttendance, error: attendanceError } =
+        await supabase
+          .from("attendance")
+          .select("student_id, status")
+          .eq("batch_id", selectedBatch)
+          .eq("date", formattedDate);
 
       if (attendanceError) throw attendanceError;
 
@@ -121,7 +122,10 @@ export function BulkAttendanceMarker({
       const initialAttendance: AttendanceState = {};
       if (existingAttendance) {
         existingAttendance.forEach((record) => {
-          initialAttendance[record.student_id] = record.status as "present" | "absent" | "late";
+          initialAttendance[record.student_id] = record.status as
+            | "present"
+            | "absent"
+            | "late";
         });
       }
       setAttendance(initialAttendance);
@@ -177,19 +181,28 @@ export function BulkAttendanceMarker({
     }
 
     // Validate class day
-    const dayOfWeek = selectedDate.getDay() === 0 ? 1 : selectedDate.getDay() + 1;
-    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayOfWeek =
+      selectedDate.getDay() === 0 ? 1 : selectedDate.getDay() + 1;
+    const dayNames = [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+    ];
     const currentDayName = dayNames[selectedDate.getDay()];
-    
+
     console.log(`Selected date: ${selectedDate.toDateString()}`);
     console.log(`Day of week (JS): ${selectedDate.getDay()}`);
     console.log(`Day of week (calculated): ${dayOfWeek}`);
     console.log(`Current day name: ${currentDayName}`);
-    console.log(`Valid days: [7=Saturday, 2=Monday, 5=Thursday]`);
-    
-    if (![7, 2, 5].includes(dayOfWeek)) {
+    console.log(`Valid days: [7=Saturday, 2=Monday, 4=Wednesday]`);
+
+    if (![7, 2, 4].includes(dayOfWeek)) {
       toast.error(
-        `Attendance can only be marked for Saturday, Monday, and Thursday. You selected ${currentDayName}.`
+        `Attendance can only be marked for Saturday, Monday, and Wednesday. You selected ${currentDayName}.`
       );
       return;
     }
@@ -224,22 +237,26 @@ export function BulkAttendanceMarker({
         .from("attendance")
         .upsert(attendanceRecords, {
           onConflict: "student_id,date,batch_id",
-          ignoreDuplicates: false
+          ignoreDuplicates: false,
         });
 
       if (error) {
         console.error("Bulk attendance error:", error);
         console.error("Error details:", JSON.stringify(error, null, 2));
-        
+
         // Check for specific error codes
-        if (error.code === '23514') {
-          throw new Error(`Database constraint violation: One or more status values are not allowed. Only 'present', 'absent', and 'late' are valid.`);
-        } else if (error.code === '23503') {
+        if (error.code === "23514") {
+          throw new Error(
+            `Database constraint violation: One or more status values are not allowed. Only 'present', 'absent', and 'late' are valid.`
+          );
+        } else if (error.code === "23503") {
           throw new Error("Invalid student or batch ID provided.");
-        } else if (error.code === '23505') {
-          throw new Error("Attendance for one or more students on this date already exists.");
+        } else if (error.code === "23505") {
+          throw new Error(
+            "Attendance for one or more students on this date already exists."
+          );
         }
-        
+
         throw error;
       }
 
@@ -254,16 +271,23 @@ export function BulkAttendanceMarker({
     } catch (error: unknown) {
       console.error("Error saving attendance:", error);
       console.error("Error details:", JSON.stringify(error, null, 2));
-      
+
       let errorMessage = "Failed to save attendance";
       if (error instanceof Error) {
         errorMessage = error.message;
-      } else if (typeof error === 'object' && error !== null) {
+      } else if (typeof error === "object" && error !== null) {
         // Handle Supabase errors that might not be Error instances
-        const supabaseError = error as { message?: string; code?: string; details?: string };
-        errorMessage = supabaseError.message || supabaseError.details || `Database error: ${supabaseError.code || 'Unknown error'}`;
+        const supabaseError = error as {
+          message?: string;
+          code?: string;
+          details?: string;
+        };
+        errorMessage =
+          supabaseError.message ||
+          supabaseError.details ||
+          `Database error: ${supabaseError.code || "Unknown error"}`;
       }
-      
+
       toast.error(errorMessage);
     } finally {
       setIsSaving(false);
@@ -298,7 +322,7 @@ export function BulkAttendanceMarker({
 
   const getDayName = (date: Date) => {
     const dayOfWeek = date.getDay() === 0 ? 1 : date.getDay() + 1;
-    const days = { 7: "Saturday", 2: "Monday", 5: "Thursday" };
+    const days = { 7: "Saturday", 2: "Monday", 4: "Wednesday" };
     return days[dayOfWeek as keyof typeof days] || "Non-class day";
   };
 
@@ -355,15 +379,16 @@ export function BulkAttendanceMarker({
             Bulk Attendance Marking
           </CardTitle>
           <CardDescription>
-            Select a batch and date to mark attendance for all students at once. Classes are held on Saturday, Monday, and Thursday.
+            Select a batch and date to mark attendance for all students at once.
+            Classes are held on Saturday, Monday, and Wednesday.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-medium mb-2 block">Batch *</label>
-              <Select 
-                value={selectedBatch} 
+              <Select
+                value={selectedBatch}
                 onValueChange={setSelectedBatch}
                 disabled={selectedDate && !isClassDay(selectedDate)}
               >
@@ -422,17 +447,18 @@ export function BulkAttendanceMarker({
                     modifiers={{
                       classDay: (date) => {
                         const jsDay = date.getDay(); // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
-                        // Saturday (6), Monday (1), Thursday (4)
-                        return [6, 1, 4].includes(jsDay);
+                        // Saturday (6), Monday (1), Wednesday (4)
+                        return [6, 1, 3].includes(jsDay);
                       },
                       nonClassDay: (date) => {
                         const jsDay = date.getDay(); // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
-                        // Not Saturday, Monday, or Thursday
-                        return ![6, 1, 4].includes(jsDay);
+                        // Not Saturday, Monday, or Wednesday
+                        return ![6, 1, 3].includes(jsDay);
                       },
                     }}
                     modifiersClassNames={{
-                      classDay: "bg-green-100 text-green-900 hover:bg-green-200 font-semibold",
+                      classDay:
+                        "bg-green-100 text-green-900 hover:bg-green-200 font-semibold",
                       nonClassDay: "bg-red-50 text-red-400 hover:bg-red-100",
                     }}
                     initialFocus
@@ -441,7 +467,8 @@ export function BulkAttendanceMarker({
               </Popover>
               {selectedDate && !isClassDay(selectedDate) && (
                 <p className="text-xs text-red-600 mt-1">
-                  ⚠️ This is not a class day. Classes are held on Saturday, Monday, and Thursday.
+                  ⚠️ This is not a class day. Classes are held on Saturday,
+                  Monday, and Wednesday.
                 </p>
               )}
             </div>
@@ -580,7 +607,9 @@ export function BulkAttendanceMarker({
                   setStudents([]);
                   setSelectedBatch("");
                 }}
-                disabled={isSaving || (selectedDate && !isClassDay(selectedDate))}
+                disabled={
+                  isSaving || (selectedDate && !isClassDay(selectedDate))
+                }
               >
                 <RotateCcw className="mr-2 h-4 w-4" />
                 Reset
