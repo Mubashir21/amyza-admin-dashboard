@@ -11,6 +11,7 @@ import {
   UserCheck,
   Trophy,
   BookOpen,
+  ListChecks,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -30,7 +31,6 @@ import {
 } from "@/components/ui/sidebar";
 import { NavUser } from "./nav-user";
 
-// Student Portfolio System Navigation - Grouped
 const navData = {
   navMain: [
     {
@@ -60,6 +60,11 @@ const navData = {
           title: "Teachers",
           url: "/dashboard/teachers",
           icon: BookOpen,
+        },
+        {
+          title: "Tasks",
+          url: "/dashboard/tasks",
+          icon: ListChecks,
         },
       ],
     },
@@ -129,10 +134,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
                 return (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton 
-                      asChild={!isDisabled} 
+                    <SidebarMenuButton
+                      asChild={!isDisabled}
                       isActive={isActive}
-                      className={isDisabled ? "opacity-50 cursor-not-allowed" : ""}
+                      className={
+                        isDisabled ? "opacity-50 cursor-not-allowed" : ""
+                      }
                       disabled={isDisabled}
                     >
                       {isDisabled ? (
