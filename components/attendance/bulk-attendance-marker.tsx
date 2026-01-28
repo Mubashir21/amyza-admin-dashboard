@@ -180,6 +180,17 @@ export function BulkAttendanceMarker({
       return;
     }
 
+    // Validate all students have attendance marked
+    const studentsWithoutStatus = students.filter(
+      (student) => !attendance[student.id]
+    );
+    if (studentsWithoutStatus.length > 0) {
+      toast.error(
+        `Please mark attendance for all students. ${studentsWithoutStatus.length} student(s) are unmarked.`
+      );
+      return;
+    }
+
     // Validate class day
     const dayOfWeek =
       selectedDate.getDay() === 0 ? 1 : selectedDate.getDay() + 1;
@@ -219,14 +230,16 @@ export function BulkAttendanceMarker({
 
       const formattedDate = formatDateSafely(selectedDate);
 
-      const attendanceRecords = students.map((student) => ({
-        student_id: student.id,
-        batch_id: selectedBatch,
-        date: formattedDate,
-        day_of_week: dayOfWeek,
-        status: attendance[student.id],
-        notes: null,
-      }));
+      const attendanceRecords = students
+        .filter((student) => attendance[student.id]) // Only include students with a valid status
+        .map((student) => ({
+          student_id: student.id,
+          batch_id: selectedBatch,
+          date: formattedDate,
+          day_of_week: dayOfWeek,
+          status: attendance[student.id] as "present" | "absent" | "late",
+          notes: null,
+        }));
 
       console.log("About to save attendance records:", attendanceRecords);
       console.log("Selected batch:", selectedBatch);
