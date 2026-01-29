@@ -44,6 +44,7 @@ const formSchema = z.object({
   }),
   description: z.string().optional(),
   assigned_to: z.string().optional(),
+  deadline: z.string().optional(),
   status: z.enum(["NOT_STARTED", "IN_PROGRESS", "COMPLETED"]),
 });
 
@@ -75,6 +76,7 @@ export function AddTaskDialog({ admins }: AddTaskDialogProps) {
       title: "",
       description: "",
       assigned_to: "",
+      deadline: "",
       status: "NOT_STARTED",
     },
   });
@@ -105,6 +107,7 @@ export function AddTaskDialog({ admins }: AddTaskDialogProps) {
         status: values.status as TaskStatus,
         // SuperAdmin can assign to anyone, Admin auto-assigns to themselves
         assigned_to: isSuperAdmin ? (values.assigned_to || undefined) : adminProfile.user_id,
+        deadline: values.deadline ? new Date(values.deadline).toISOString() : undefined,
         created_by: adminProfile.user_id,
       };
 
@@ -221,6 +224,23 @@ export function AddTaskDialog({ admins }: AddTaskDialogProps) {
                 )}
               />
             )}
+
+            <FormField
+              control={form.control}
+              name="deadline"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Deadline</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="date"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}

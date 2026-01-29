@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/lib/auth-context";
 import { Task } from "@/lib/tasks-services";
@@ -14,9 +14,17 @@ interface TasksTabsProps {
 
 export function TasksTabs({ tasks, admins }: TasksTabsProps) {
   const { adminProfile, userRole } = useAuth();
-  const [activeTab, setActiveTab] = useState("my-tasks");
-
   const isSuperAdmin = userRole === "super_admin";
+  
+  // Default to "All Tasks" for superadmins so they see everything
+  const [activeTab, setActiveTab] = useState("all-tasks");
+  
+  // Update tab when role loads (in case it wasn't available initially)
+  useEffect(() => {
+    if (userRole) {
+      setActiveTab(isSuperAdmin ? "all-tasks" : "my-tasks");
+    }
+  }, [userRole, isSuperAdmin]);
 
   // Filter tasks for current user
   const myTasks = tasks.filter(

@@ -43,6 +43,7 @@ const formSchema = z.object({
   }),
   description: z.string().optional(),
   assigned_to: z.string().optional(),
+  deadline: z.string().optional(),
   status: z.enum(["NOT_STARTED", "IN_PROGRESS", "COMPLETED"]),
 });
 
@@ -81,9 +82,18 @@ export function EditTaskDialog({
       title: "",
       description: "",
       assigned_to: "",
+      deadline: "",
       status: "NOT_STARTED",
     },
   });
+
+  // Helper to format date for date input
+  const formatDateForInput = (dateString: string | null) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    // Format: YYYY-MM-DD
+    return date.toISOString().slice(0, 10);
+  };
 
   // Populate form when task changes
   useEffect(() => {
@@ -92,6 +102,7 @@ export function EditTaskDialog({
         title: task.title || "",
         description: task.description || "",
         assigned_to: task.assigned_to || "",
+        deadline: formatDateForInput(task.deadline),
         status: task.status || "NOT_STARTED",
       });
     }
@@ -111,6 +122,7 @@ export function EditTaskDialog({
         description: values.description || null,
         status: values.status as TaskStatus,
         assigned_to: values.assigned_to || null,
+        deadline: values.deadline ? new Date(values.deadline).toISOString() : null,
       };
 
       await updateTask(task.id, updateData);
@@ -221,6 +233,23 @@ export function EditTaskDialog({
                 )}
               />
             )}
+
+            <FormField
+              control={form.control}
+              name="deadline"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Deadline</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="date"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}

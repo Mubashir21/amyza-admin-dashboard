@@ -175,6 +175,7 @@ export function TasksTable({ tasks, admins }: TasksTableProps) {
                 <TableHead>Title</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Assigned To</TableHead>
+                <TableHead>Deadline</TableHead>
                 <TableHead>Created At</TableHead>
                 <TableHead>Completed At</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -218,6 +219,19 @@ export function TasksTable({ tasks, admins }: TasksTableProps) {
                         </div>
                       ) : (
                         <span className="text-muted-foreground">Unassigned</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {task.deadline ? (
+                        <span className={
+                          new Date(task.deadline) < new Date() && task.status !== "COMPLETED"
+                            ? "text-red-600 font-medium"
+                            : ""
+                        }>
+                          {formatShortDate(task.deadline)}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
                       )}
                     </TableCell>
                     <TableCell className="text-sm">
