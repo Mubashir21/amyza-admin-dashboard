@@ -142,7 +142,8 @@ export function EditTaskDialog({
         updateData.deadline_locked = values.deadline_locked;
       }
 
-      await updateTask(task.id, updateData);
+      // Pass isSuperAdmin to enforce deadline lock check on server
+      await updateTask(task.id, updateData, isSuperAdmin);
 
       toast.success("Task updated successfully!", {
         description: `"${values.title}" has been updated.`,
@@ -301,9 +302,6 @@ export function EditTaskDialog({
                         <Lock className="h-4 w-4" />
                         Lock Deadline
                       </FormLabel>
-                      <FormDescription>
-                        Prevent admins from changing the deadline for this task.
-                      </FormDescription>
                     </div>
                   </FormItem>
                 )}

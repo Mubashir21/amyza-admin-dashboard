@@ -107,18 +107,22 @@ export async function createTask(taskData: CreateTaskData): Promise<Task> {
 
 /**
  * Update a task (uses browser client for client-side mutations)
+ * @param taskId - The task ID to update
+ * @param updates - The fields to update
+ * @param isSuperAdmin - Whether the current user is a superadmin (required for deadline lock enforcement)
  */
 export async function updateTask(
   taskId: string,
-  updates: UpdateTaskData
+  updates: UpdateTaskData,
+  isSuperAdmin: boolean = false
 ): Promise<Task> {
   try {
     const now = new Date().toISOString();
     
-    // Get current task to check status change
+    // Get current task to check status change and deadline lock
     const { data: currentTask } = await browserClient
       .from("tasks")
-      .select("status")
+      .select("status, deadline_locked")
       .eq("id", taskId)
       .single();
 
@@ -126,6 +130,15 @@ export async function updateTask(
       ...updates,
       updated_at: now,
     };
+
+    // Enforce deadline lock for non-superadmins
+    // Re-fetch the lock status each time to ensure it's current
+    if (!isSuperAdmin && currentTask?.deadline_locked) {
+      // Remove deadline from updates if locked and user is not superadmin
+      delete updateData.deadline;
+      // Also prevent non-superadmins from changing the lock status
+      delete updateData.deadline_locked;
+    }
 
     // Handle completed_at based on status change
     if (updates.status !== undefined) {
