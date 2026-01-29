@@ -3,7 +3,8 @@
  * Handles task management CRUD operations
  */
 
-import { supabase } from "./supabase/client";
+import { supabase as browserClient } from "./supabase/client";
+import { supabase as serverClient } from "./supabase/server";
 
 // Task status enum
 export type TaskStatus = "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED";
@@ -45,11 +46,11 @@ export interface UpdateTaskData {
 }
 
 /**
- * Get all tasks
+ * Get all tasks (uses server client for SSR)
  */
 export async function getTasks(): Promise<Task[]> {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await serverClient
       .from("tasks")
       .select("*")
       .order("created_at", { ascending: false });
@@ -67,7 +68,7 @@ export async function getTasks(): Promise<Task[]> {
 }
 
 /**
- * Create a new task
+ * Create a new task (uses browser client for client-side mutations)
  */
 export async function createTask(taskData: CreateTaskData): Promise<Task> {
   try {
@@ -86,7 +87,7 @@ export async function createTask(taskData: CreateTaskData): Promise<Task> {
       completed_at: taskData.status === "COMPLETED" ? now : null,
     };
 
-    const { data, error } = await supabase
+    const { data, error } = await browserClient
       .from("tasks")
       .insert([insertData])
       .select("*")
@@ -105,7 +106,7 @@ export async function createTask(taskData: CreateTaskData): Promise<Task> {
 }
 
 /**
- * Update a task
+ * Update a task (uses browser client for client-side mutations)
  */
 export async function updateTask(
   taskId: string,
@@ -115,7 +116,7 @@ export async function updateTask(
     const now = new Date().toISOString();
     
     // Get current task to check status change
-    const { data: currentTask } = await supabase
+    const { data: currentTask } = await browserClient
       .from("tasks")
       .select("status")
       .eq("id", taskId)
@@ -137,7 +138,7 @@ export async function updateTask(
       }
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await browserClient
       .from("tasks")
       .update(updateData)
       .eq("id", taskId)
@@ -157,11 +158,11 @@ export async function updateTask(
 }
 
 /**
- * Delete a task
+ * Delete a task (uses browser client for client-side mutations)
  */
 export async function deleteTask(taskId: string): Promise<void> {
   try {
-    const { error } = await supabase
+    const { error } = await browserClient
       .from("tasks")
       .delete()
       .eq("id", taskId);
@@ -177,7 +178,7 @@ export async function deleteTask(taskId: string): Promise<void> {
 }
 
 /**
- * Get task statistics
+ * Get task statistics (uses server client for SSR)
  */
 export async function getTaskStats(): Promise<{
   total: number;
@@ -186,7 +187,7 @@ export async function getTaskStats(): Promise<{
   completed: number;
 }> {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await serverClient
       .from("tasks")
       .select("status");
 
