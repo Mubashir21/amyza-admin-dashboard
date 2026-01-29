@@ -22,6 +22,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import {
   Select,
@@ -32,7 +33,8 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Plus, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { createTask, TaskStatus } from "@/lib/tasks-services";
 import { AdminUser } from "@/lib/admin-services";
@@ -45,6 +47,7 @@ const formSchema = z.object({
   description: z.string().optional(),
   assigned_to: z.string().optional(),
   deadline: z.string().optional(),
+  deadline_locked: z.boolean(),
   status: z.enum(["NOT_STARTED", "IN_PROGRESS", "COMPLETED"]),
 });
 
@@ -63,10 +66,10 @@ export function AddTaskDialog({ admins }: AddTaskDialogProps) {
 
   const isSuperAdmin = userRole === "super_admin";
 
-  // SuperAdmin: can assign to anyone (admins + superadmins)
+  // SuperAdmin: can assign to admins and themselves (not other superadmins)
   // Admin: can only assign to themselves
   const availableAdmins = isSuperAdmin
-    ? admins.filter((a) => a.role === "admin" || a.role === "super_admin")
+    ? admins.filter((a) => a.role === "admin" || a.user_id === adminProfile?.user_id)
     : admins.filter((a) => a.user_id === adminProfile?.user_id);
 
   const form = useForm<FormValues>({
@@ -77,6 +80,7 @@ export function AddTaskDialog({ admins }: AddTaskDialogProps) {
       description: "",
       assigned_to: "",
       deadline: "",
+      deadline_locked: false,
       status: "NOT_STARTED",
     },
   });
@@ -108,6 +112,7 @@ export function AddTaskDialog({ admins }: AddTaskDialogProps) {
         // SuperAdmin can assign to anyone, Admin auto-assigns to themselves
         assigned_to: isSuperAdmin ? (values.assigned_to || undefined) : adminProfile.user_id,
         deadline: values.deadline ? new Date(values.deadline).toISOString() : undefined,
+        deadline_locked: isSuperAdmin ? values.deadline_locked : false,
         created_by: adminProfile.user_id,
       };
 
@@ -241,6 +246,30 @@ export function AddTaskDialog({ admins }: AddTaskDialogProps) {
                 </FormItem>
               )}
             />
+
+            {/* Only show Lock Deadline checkbox for SuperAdmins */}
+            {isSuperAdmin && (
+              <FormField
+                control={form.control}
+                name="deadline_locked"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="flex items-center gap-2">
+                        <Lock className="h-4 w-4" />
+                        Lock Deadline
+                      </FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            )}
 
             <FormField
               control={form.control}

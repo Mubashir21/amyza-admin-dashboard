@@ -17,6 +17,7 @@ export interface Task {
   created_by: string | null;
   assigned_to: string | null;
   deadline: string | null;
+  deadline_locked: boolean;
   created_at: string;
   updated_at: string;
   completed_at: string | null;
@@ -29,6 +30,7 @@ export interface CreateTaskData {
   status?: TaskStatus;
   assigned_to?: string;
   deadline?: string;
+  deadline_locked?: boolean;
   created_by: string;
 }
 
@@ -39,6 +41,7 @@ export interface UpdateTaskData {
   status?: TaskStatus;
   assigned_to?: string | null;
   deadline?: string | null;
+  deadline_locked?: boolean;
 }
 
 /**
@@ -76,6 +79,7 @@ export async function createTask(taskData: CreateTaskData): Promise<Task> {
       status: taskData.status || "NOT_STARTED",
       assigned_to: taskData.assigned_to || null,
       deadline: taskData.deadline || null,
+      deadline_locked: taskData.deadline_locked || false,
       created_by: taskData.created_by,
       created_at: now,
       updated_at: now,

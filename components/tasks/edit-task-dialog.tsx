@@ -21,6 +21,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import {
   Select,
@@ -31,7 +32,8 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ClipboardList } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ClipboardList, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { updateTask, Task, TaskStatus } from "@/lib/tasks-services";
 import { AdminUser } from "@/lib/admin-services";
@@ -44,6 +46,7 @@ const formSchema = z.object({
   description: z.string().optional(),
   assigned_to: z.string().optional(),
   deadline: z.string().optional(),
+  deadline_locked: z.boolean(),
   status: z.enum(["NOT_STARTED", "IN_PROGRESS", "COMPLETED"]),
 });
 
@@ -69,10 +72,10 @@ export function EditTaskDialog({
 
   const isSuperAdmin = userRole === "super_admin";
 
-  // SuperAdmin: can assign to anyone (admins + superadmins)
+  // SuperAdmin: can assign to admins and themselves (not other superadmins)
   // Admin: can only assign to themselves
   const availableAdmins = isSuperAdmin
-    ? admins.filter((a) => a.role === "admin" || a.role === "super_admin")
+    ? admins.filter((a) => a.role === "admin" || a.user_id === adminProfile?.user_id)
     : admins.filter((a) => a.user_id === adminProfile?.user_id);
 
   const form = useForm<FormValues>({
@@ -83,6 +86,7 @@ export function EditTaskDialog({
       description: "",
       assigned_to: "",
       deadline: "",
+      deadline_locked: false,
       status: "NOT_STARTED",
     },
   });
@@ -95,6 +99,9 @@ export function EditTaskDialog({
     return date.toISOString().slice(0, 10);
   };
 
+  // Check if deadline is locked for this user
+  const isDeadlineLocked = task.deadline_locked && !isSuperAdmin;
+
   // Populate form when task changes
   useEffect(() => {
     if (task && open) {
@@ -103,6 +110,7 @@ export function EditTaskDialog({
         description: task.description || "",
         assigned_to: task.assigned_to || "",
         deadline: formatDateForInput(task.deadline),
+        deadline_locked: task.deadline_locked || false,
         status: task.status || "NOT_STARTED",
       });
     }
@@ -117,13 +125,22 @@ export function EditTaskDialog({
     setError(null);
 
     try {
-      const updateData = {
+      const updateData: Parameters<typeof updateTask>[1] = {
         title: values.title,
         description: values.description || null,
         status: values.status as TaskStatus,
         assigned_to: values.assigned_to || null,
-        deadline: values.deadline ? new Date(values.deadline).toISOString() : null,
       };
+
+      // Only update deadline if not locked for this user, or if superadmin
+      if (!isDeadlineLocked) {
+        updateData.deadline = values.deadline ? new Date(values.deadline).toISOString() : null;
+      }
+
+      // Only superadmins can change the lock status
+      if (isSuperAdmin) {
+        updateData.deadline_locked = values.deadline_locked;
+      }
 
       await updateTask(task.id, updateData);
 
@@ -239,17 +256,59 @@ export function EditTaskDialog({
               name="deadline"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Deadline</FormLabel>
+                  <FormLabel className="flex items-center gap-2">
+                    Deadline
+                    {isDeadlineLocked && (
+                      <span className="flex items-center gap-1 text-xs text-orange-600 font-normal">
+                        <Lock className="h-3 w-3" />
+                        Locked
+                      </span>
+                    )}
+                  </FormLabel>
                   <FormControl>
                     <Input
                       type="date"
+                      disabled={isDeadlineLocked}
+                      className={isDeadlineLocked ? "bg-muted cursor-not-allowed" : ""}
                       {...field}
                     />
                   </FormControl>
+                  {isDeadlineLocked && (
+                    <FormDescription className="text-orange-600">
+                      This deadline has been locked by a Super Admin.
+                    </FormDescription>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
             />
+
+            {/* Only show Lock Deadline checkbox for SuperAdmins */}
+            {isSuperAdmin && (
+              <FormField
+                control={form.control}
+                name="deadline_locked"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="flex items-center gap-2">
+                        <Lock className="h-4 w-4" />
+                        Lock Deadline
+                      </FormLabel>
+                      <FormDescription>
+                        Prevent admins from changing the deadline for this task.
+                      </FormDescription>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            )}
 
             <FormField
               control={form.control}

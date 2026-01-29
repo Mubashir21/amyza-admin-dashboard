@@ -30,7 +30,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { MoreVertical, Edit, Trash2, ClipboardList } from "lucide-react";
+import { MoreVertical, Edit, Trash2, ClipboardList, Lock, LockOpen } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { canManageTasks } from "@/lib/roles";
@@ -176,6 +176,7 @@ export function TasksTable({ tasks, admins }: TasksTableProps) {
                 <TableHead>Status</TableHead>
                 <TableHead>Assigned To</TableHead>
                 <TableHead>Deadline</TableHead>
+                {isSuperAdmin && <TableHead className="text-center">Locked</TableHead>}
                 <TableHead>Created At</TableHead>
                 <TableHead>Completed At</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -234,6 +235,15 @@ export function TasksTable({ tasks, admins }: TasksTableProps) {
                         <span className="text-muted-foreground">—</span>
                       )}
                     </TableCell>
+                    {isSuperAdmin && (
+                      <TableCell className="text-center">
+                        {task.deadline_locked ? (
+                          <Lock className="h-4 w-4 text-orange-600 mx-auto" />
+                        ) : (
+                          <LockOpen className="h-4 w-4 text-muted-foreground mx-auto" />
+                        )}
+                      </TableCell>
+                    )}
                     <TableCell className="text-sm">
                       {formatShortDate(task.created_at)}
                     </TableCell>
