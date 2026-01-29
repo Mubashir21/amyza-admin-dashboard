@@ -6,6 +6,9 @@ import { TasksAccessGuard } from "@/components/tasks/tasks-access-guard";
 import { getTasks, getTaskStats } from "@/lib/tasks-services";
 import { getAllAdminUsers } from "@/lib/admin-services";
 
+// Disable caching to always fetch fresh data
+export const dynamic = 'force-dynamic';
+
 export default async function TasksPage() {
   const [tasks, stats, admins] = await Promise.all([
     getTasks(),
