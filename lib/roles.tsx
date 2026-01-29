@@ -98,6 +98,27 @@ export function isViewerOnly(role: UserRole | null): boolean {
 }
 
 /**
+ * Check if user can access tasks page (only admin and super_admin)
+ */
+export function canAccessTasks(role: UserRole | null): boolean {
+  return role === 'super_admin' || role === 'admin';
+}
+
+/**
+ * Check if user can manage tasks (create, edit, delete)
+ */
+export function canManageTasks(role: UserRole | null): boolean {
+  return role === 'super_admin' || role === 'admin';
+}
+
+/**
+ * Check if user can assign tasks to super_admins (only super_admin)
+ */
+export function canAssignToSuperAdmin(role: UserRole | null): boolean {
+  return role === 'super_admin';
+}
+
+/**
  * Get role display name
  */
 export function getRoleDisplayName(role: UserRole): string {
